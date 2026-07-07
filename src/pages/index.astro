@@ -1,0 +1,74 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Hero from "../components/Hero.astro";
+import ProfileCard from "../components/ProfileCard.astro";
+import ThoughtsStrip from "../components/ThoughtsStrip.astro";
+import ArticleCompactList from "../components/ArticleCompactList.astro";
+import GalleryPreview from "../components/GalleryPreview.astro";
+import GuestbookPreview from "../components/GuestbookPreview.astro";
+---
+
+<BaseLayout>
+  <Hero />
+
+  <div id="home-dashboard" class="home-dashboard container-content">
+    <aside class="home-dashboard__sidebar">
+      <ProfileCard />
+    </aside>
+
+    <div class="home-dashboard__main">
+      <ThoughtsStrip />
+
+      <div class="home-dashboard__row">
+        <div class="home-dashboard__articles">
+          <ArticleCompactList />
+        </div>
+
+        <div class="home-dashboard__sidecards">
+          <GalleryPreview />
+          <GuestbookPreview />
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .home-dashboard {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    padding-block: 1rem 4rem;
+  }
+
+  @media (min-width: 1024px) {
+    .home-dashboard {
+      grid-template-columns: 310px minmax(0, 1fr);
+      gap: 2rem;
+      align-items: start;
+    }
+  }
+
+  .home-dashboard__main {
+    min-width: 0;
+  }
+
+  .home-dashboard__row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 1024px) {
+    .home-dashboard__row {
+      grid-template-columns: minmax(0, 1fr) 310px;
+      gap: 1.75rem;
+      align-items: start;
+    }
+  }
+
+  .home-dashboard__sidecards {
+    display: grid;
+    gap: 1rem;
+  }
+</style>

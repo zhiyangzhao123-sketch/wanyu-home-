@@ -1,0 +1,145 @@
+---
+import { getCollection } from "astro:content";
+import SectionHeader from "./SectionHeader.astro";
+import { formatShortDate } from "../utils/content";
+
+const noteColors = ["#FFFAEF", "#FDF6DC", "#FBEAE6", "#EFF5E8"];
+const noteRotations = [-2, 1.5, -1.8, 2, -1.2];
+const noteOffsets = [0, 8, 4, 12, 6];
+
+const thoughts = (await getCollection("thoughts"))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+  .slice(0, 5);
+---
+
+<section id="thoughts" class="thoughts-strip-section" data-reveal="content">
+  <SectionHeader
+    emoji="📝"
+    title="碎碎念便利贴"
+    linkHref="/thoughts"
+    linkLabel="查看更多 →"
+  />
+
+  <ul class="thoughts-strip">
+    {
+      thoughts.map((thought, index) => (
+        <li
+          class="thought-note"
+          style={{
+            "--note-bg": noteColors[index % noteColors.length],
+            "--note-rotate": `${noteRotations[index % noteRotations.length]}deg`,
+            "--note-offset": `${noteOffsets[index % noteOffsets.length]}px`,
+          }}
+          data-reveal="content"
+          data-reveal-delay={`${60 + index * 40}`}
+        >
+          <span class="thought-note__tape" aria-hidden="true"></span>
+          <p class="thought-note__body">{thought.body?.trim()}</p>
+          <footer class="thought-note__meta">
+            <time datetime={thought.data.pubDate.toISOString()}>
+              {formatShortDate(thought.data.pubDate)}
+            </time>
+            {thought.data.mood && <span>{thought.data.mood}</span>}
+            {thought.data.weather && <span>{thought.data.weather}</span>}
+          </footer>
+        </li>
+      ))
+    }
+  </ul>
+</section>
+
+<style>
+  .thoughts-strip-section {
+    margin-bottom: 1.75rem;
+  }
+
+  .thoughts-strip {
+    list-style: none;
+    margin: 0;
+    padding: 0.35rem 0.15rem 0.5rem;
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(231 185 138 / 45%) transparent;
+  }
+
+  .thoughts-strip::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .thoughts-strip::-webkit-scrollbar-thumb {
+    background: rgb(231 185 138 / 45%);
+    border-radius: 999px;
+  }
+
+  @media (min-width: 1024px) {
+    .thoughts-strip {
+      overflow: visible;
+      flex-wrap: nowrap;
+      justify-content: flex-start;
+    }
+  }
+
+  .thought-note {
+    position: relative;
+    flex: 0 0 220px;
+    scroll-snap-align: start;
+    background-color: var(--note-bg);
+    border-radius: 5px;
+    padding: 1.35rem 0.95rem 0.85rem;
+    margin-top: var(--note-offset);
+    box-shadow:
+      0 2px 6px rgb(91 81 72 / 8%),
+      0 1px 2px rgb(91 81 72 / 6%);
+    transform: rotate(var(--note-rotate));
+    transition:
+      transform 0.35s ease,
+      box-shadow 0.35s ease,
+      translate 0.35s ease;
+  }
+
+  .thought-note:hover {
+    rotate: 0deg;
+    translate: 0 -4px;
+    box-shadow:
+      0 8px 18px rgb(91 81 72 / 12%),
+      0 2px 6px rgb(91 81 72 / 8%);
+  }
+
+  .thought-note__tape {
+    position: absolute;
+    top: -7px;
+    left: 50%;
+    width: 48px;
+    height: 15px;
+    transform: translateX(-50%) rotate(-3deg);
+    background: rgb(243 230 200 / 58%);
+    border: 1px solid rgb(210 190 160 / 22%);
+    box-shadow: 0 1px 2px rgb(91 81 72 / 8%);
+  }
+
+  .thought-note__body {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.75;
+    color: var(--color-text-primary);
+    white-space: pre-line;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    overflow: hidden;
+  }
+
+  .thought-note__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.55rem;
+    margin-top: 0.75rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid rgb(91 81 72 / 8%);
+    font-size: 0.72rem;
+    color: var(--color-text-secondary);
+  }
+</style>

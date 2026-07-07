@@ -1,0 +1,47 @@
+<script>
+  function initScrollReveal() {
+    const prefersReduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const items = document.querySelectorAll<HTMLElement>("[data-reveal]");
+
+    if (!items.length) return;
+
+    const reveal = (el: HTMLElement) => {
+      el.classList.add("is-visible");
+    };
+
+    if (prefersReduced) {
+      items.forEach(reveal);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          reveal(entry.target as HTMLElement);
+          observer.unobserve(entry.target);
+        });
+      },
+      {
+        threshold: 0.12,
+        rootMargin: "0px 0px -32px 0px",
+      },
+    );
+
+    items.forEach((el) => {
+      if (el.classList.contains("is-visible")) return;
+
+      const delay = el.dataset.revealDelay;
+      if (delay) {
+        el.style.setProperty("--reveal-delay", `${delay}ms`);
+      }
+
+      observer.observe(el);
+    });
+  }
+
+  initScrollReveal();
+  document.addEventListener("astro:page-load", initScrollReveal);
+</script>

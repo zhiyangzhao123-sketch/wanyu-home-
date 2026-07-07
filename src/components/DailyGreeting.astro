@@ -1,0 +1,81 @@
+<section class="daily-greeting" aria-label="今日一句">
+  <p class="daily-greeting__text" data-daily-greeting>今天也要温柔地对待自己。</p>
+</section>
+
+<script>
+  const greetings = {
+    morning: [
+      "早安，今天也要好好吃早餐哦 ☀️",
+      "清晨的风很温柔，愿你今天心情也是 🌤️",
+      "早安呀，慢慢来，今天也会很好的 🥐",
+      "新的一天开始了，记得对自己笑一下 ☀️",
+    ],
+    afternoon: [
+      "下午好，记得喝水休息一下 🍵",
+      "午后时光，给自己一点小奖励吧 🍰",
+      "下午好呀，别太累，偶尔发发呆也很好 🌿",
+      "阳光正好，适合慢慢做一件喜欢的事 🍵",
+    ],
+    evening: [
+      "晚上好，今天辛苦了 🌙",
+      "夜色温柔，愿你今晚心里也亮着一盏小灯 🌙",
+      "晚上好呀，把烦恼留给今天，把轻松留给自己 ✨",
+      "今天也走到这里了，真的很棒 🌙",
+    ],
+    night: [
+      "夜深了，早点休息哦 💤",
+      "已经很晚啦，明天的事明天再说吧 💤",
+      "晚安，愿今晚的梦也是软软的 🌙",
+      "夜深了，记得关小一点世界的音量 💤",
+    ],
+  } as const;
+
+  type GreetingSlot = keyof typeof greetings;
+
+  function getSlot(hour: number): GreetingSlot {
+    if (hour >= 5 && hour < 11) return "morning";
+    if (hour >= 11 && hour < 18) return "afternoon";
+    if (hour >= 18 && hour < 23) return "evening";
+    return "night";
+  }
+
+  function pickRandom<T>(items: readonly T[]): T {
+    return items[Math.floor(Math.random() * items.length)]!;
+  }
+
+  function initDailyGreeting() {
+    const target = document.querySelector<HTMLElement>("[data-daily-greeting]");
+    if (!target) return;
+
+    const slot = getSlot(new Date().getHours());
+    target.textContent = pickRandom(greetings[slot]);
+  }
+
+  initDailyGreeting();
+  document.addEventListener("astro:page-load", initDailyGreeting);
+</script>
+
+<style>
+  .daily-greeting {
+    padding-block: 2.75rem 2.25rem;
+  }
+
+  .daily-greeting__text {
+    margin: 0;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 15px;
+    line-height: 1.8;
+    letter-spacing: 0.02em;
+  }
+
+  @media (min-width: 768px) {
+    .daily-greeting {
+      padding-block: 3rem 2.5rem;
+    }
+
+    .daily-greeting__text {
+      font-size: 16px;
+    }
+  }
+</style>

@@ -1,0 +1,133 @@
+---
+import { getCollection } from "astro:content";
+import SectionTitle from "./SectionTitle.astro";
+import { formatShortDate } from "../utils/content";
+
+const noteColors = ["#FFFAEF", "#FDF6DC", "#FBEAE6", "#EFF5E8"];
+const noteRotations = [-1.5, 1.8, -2, 1.2];
+
+const thoughts = (await getCollection("thoughts"))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+  .slice(0, 4);
+---
+
+<section id="thoughts" class="thoughts-section section-padding" data-reveal="content">
+  <div class="container-content">
+    <SectionTitle title="碎碎念" subtitle="一些没头没尾的小心情" />
+
+    <ul class="thoughts-grid">
+      {
+        thoughts.map((thought, index) => (
+          <li
+            class="thought-note"
+            style={{
+              "--note-bg": noteColors[index % noteColors.length],
+              "--note-rotate": `${noteRotations[index % noteRotations.length]}deg`,
+            }}
+            data-reveal="content"
+            data-reveal-delay="80"
+          >
+            <p class="thought-note__body">{thought.body?.trim()}</p>
+            <footer class="thought-note__meta">
+              <time datetime={thought.data.pubDate.toISOString()}>
+                {formatShortDate(thought.data.pubDate)}
+              </time>
+              {thought.data.mood && <span>{thought.data.mood}</span>}
+              {thought.data.weather && <span>{thought.data.weather}</span>}
+            </footer>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="thoughts-more" data-reveal="content" data-reveal-delay="120">
+      <a href="/thoughts" class="thoughts-more__link">看看更多碎碎念 →</a>
+    </p>
+  </div>
+</section>
+
+<style>
+  .thoughts-section {
+    background-color: var(--color-background);
+  }
+
+  .thoughts-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .thoughts-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.75rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .thoughts-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1.5rem;
+    }
+  }
+
+  .thought-note {
+    background-color: var(--note-bg);
+    border-radius: 5px;
+    padding: 1.25rem 1.15rem 1rem;
+    box-shadow:
+      0 2px 6px rgb(91 81 72 / 8%),
+      0 1px 2px rgb(91 81 72 / 6%);
+    transform: rotate(var(--note-rotate));
+    transition:
+      transform 0.35s ease,
+      box-shadow 0.35s ease,
+      translate 0.35s ease;
+  }
+
+  .thought-note:hover {
+    rotate: 0deg;
+    translate: 0 -4px;
+    box-shadow:
+      0 8px 20px rgb(91 81 72 / 12%),
+      0 2px 6px rgb(91 81 72 / 8%);
+  }
+
+  .thought-note__body {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--color-text-primary);
+    white-space: pre-line;
+  }
+
+  .thought-note__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgb(91 81 72 / 8%);
+    font-size: 0.82rem;
+    color: var(--color-text-secondary);
+  }
+
+  .thoughts-more {
+    margin: 2.5rem 0 0;
+    text-align: center;
+  }
+
+  .thoughts-more__link {
+    color: var(--color-text-secondary);
+    font-size: 0.92rem;
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+
+  .thoughts-more__link:hover {
+    color: var(--color-brand);
+  }
+</style>

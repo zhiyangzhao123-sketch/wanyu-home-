@@ -1,0 +1,69 @@
+---
+interface Props {
+  emoji: string;
+  title: string;
+  linkHref?: string;
+  linkLabel?: string;
+  class?: string;
+}
+
+const {
+  emoji,
+  title,
+  linkHref,
+  linkLabel = "查看更多 →",
+  class: className,
+} = Astro.props;
+---
+
+<div class:list={["section-header", className]} data-reveal="content">
+  <h2 class="section-header__title">
+    <span class="section-header__emoji" aria-hidden="true">{emoji}</span>
+    {title}
+  </h2>
+  {
+    linkHref && (
+      <a href={linkHref} class="section-header__link">
+        {linkLabel}
+      </a>
+    )
+  }
+</div>
+
+<style>
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.15rem;
+  }
+
+  .section-header__title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    line-height: 1.35;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .section-header__emoji {
+    font-size: 1.05rem;
+  }
+
+  .section-header__link {
+    flex-shrink: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.82rem;
+    text-decoration: none;
+    transition: color 0.3s ease;
+    white-space: nowrap;
+  }
+
+  .section-header__link:hover {
+    color: var(--color-brand);
+  }
+</style>

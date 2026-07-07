@@ -1,0 +1,939 @@
+---
+
+import hero01 from "../assets/hero/hero-01.jpg";
+
+import hero02 from "../assets/hero/hero-02.jpg";
+
+import hero03 from "../assets/hero/hero-03.jpg";
+
+import hero04 from "../assets/hero/hero-04.jpg";
+
+import hero05 from "../assets/hero/hero-05.jpg";
+
+
+
+const slides = [hero01, hero02, hero03, hero04, hero05];
+
+---
+
+
+
+<section id="hero" class="hero-banner" data-hero-carousel>
+
+  <div class="hero-banner__slides" aria-hidden="true">
+
+    {
+
+      slides.map((image, index) => (
+
+        <div
+
+          class:list={["hero-banner__slide", { "is-active": index === 0 }]}
+
+          data-hero-slide
+
+          data-slide-index={index}
+
+          aria-hidden={index !== 0 ? "true" : "false"}
+
+        >
+
+          <img
+
+            src={image.src}
+
+            alt=""
+
+            width={image.width}
+
+            height={image.height}
+
+            decoding="async"
+
+          />
+
+        </div>
+
+      ))
+
+    }
+
+  </div>
+
+
+
+  <div class="hero-banner__top-scrim" aria-hidden="true"></div>
+
+  <div class="hero-banner__text-scrim" aria-hidden="true"></div>
+
+  <div class="hero-banner__bottom-scrim" aria-hidden="true"></div>
+
+
+
+  <div class="hero-banner__content container-content">
+
+    <div class="hero-banner__copy">
+
+      <h1 class="hero-banner__title">
+
+        <span>记录生活的小确幸</span>
+
+        <span>分享每一个温柔的日常 ☀️</span>
+
+      </h1>
+
+      <p class="hero-banner__intro">
+
+        欢迎来到我的小窝，愿你在这里放慢脚步，好好休息一下呀～
+
+      </p>
+
+      <a href="#home-dashboard" class="hero-banner__btn">走进我的日常 →</a>
+
+    </div>
+
+  </div>
+
+
+
+  <button
+
+    type="button"
+
+    class="hero-banner__arrow hero-banner__arrow--prev"
+
+    data-hero-prev
+
+    aria-label="上一张"
+
+  >
+
+    ‹
+
+  </button>
+
+  <button
+
+    type="button"
+
+    class="hero-banner__arrow hero-banner__arrow--next"
+
+    data-hero-next
+
+    aria-label="下一张"
+
+  >
+
+    ›
+
+  </button>
+
+
+
+  <div class="hero-banner__dots" role="tablist" aria-label="轮播指示器">
+
+    {
+
+      slides.map((_, index) => (
+
+        <button
+
+          type="button"
+
+          class:list={["hero-banner__dot", { "is-active": index === 0 }]}
+
+          data-hero-dot={index}
+
+          role="tab"
+
+          aria-label={`第 ${index + 1} 张`}
+
+          aria-selected={index === 0 ? "true" : "false"}
+
+        ></button>
+
+      ))
+
+    }
+
+  </div>
+
+</section>
+
+
+
+<p class="hero-greeting container-content" data-daily-greeting aria-label="今日一句">
+
+  今天也要温柔地对待自己。
+
+</p>
+
+
+
+<script>
+
+  const INTERVAL_MS = 9000;
+
+
+
+  const greetings = {
+
+    morning: [
+
+      "早安，今天也要好好吃早餐哦 ☀️",
+
+      "清晨的风很温柔，愿你今天心情也是 🌤️",
+
+      "早安呀，慢慢来，今天也会很好的 🥐",
+
+      "新的一天开始了，记得对自己笑一下 ☀️",
+
+    ],
+
+    afternoon: [
+
+      "下午好，记得喝水休息一下 🍵",
+
+      "午后时光，给自己一点小奖励吧 🍰",
+
+      "下午好呀，别太累，偶尔发发呆也很好 🌿",
+
+      "阳光正好，适合慢慢做一件喜欢的事 🍵",
+
+    ],
+
+    evening: [
+
+      "晚上好，今天辛苦了 🌙",
+
+      "夜色温柔，愿你今晚心里也亮着一盏小灯 🌙",
+
+      "晚上好呀，把烦恼留给今天，把轻松留给自己 ✨",
+
+      "今天也走到这里了，真的很棒 🌙",
+
+    ],
+
+    night: [
+
+      "夜深了，早点休息哦 💤",
+
+      "已经很晚啦，明天的事明天再说吧 💤",
+
+      "晚安，愿今晚的梦也是软软的 🌙",
+
+      "夜深了，记得关小一点世界的音量 💤",
+
+    ],
+
+  } as const;
+
+
+
+  function initDailyGreeting() {
+
+    const target = document.querySelector<HTMLElement>("[data-daily-greeting]");
+
+    if (!target) return;
+
+    const hour = new Date().getHours();
+
+    const slot =
+
+      hour >= 5 && hour < 11
+
+        ? "morning"
+
+        : hour >= 11 && hour < 18
+
+          ? "afternoon"
+
+          : hour >= 18 && hour < 23
+
+            ? "evening"
+
+            : "night";
+
+    const list = greetings[slot];
+
+    target.textContent = list[Math.floor(Math.random() * list.length)]!;
+
+  }
+
+
+
+  function initHeroCarousel() {
+
+    const hero = document.querySelector<HTMLElement>("[data-hero-carousel]");
+
+    if (!hero) return;
+
+
+
+    const slides = Array.from(
+
+      hero.querySelectorAll<HTMLElement>("[data-hero-slide]"),
+
+    );
+
+    const dots = Array.from(
+
+      hero.querySelectorAll<HTMLButtonElement>("[data-hero-dot]"),
+
+    );
+
+    const prev = hero.querySelector<HTMLButtonElement>("[data-hero-prev]");
+
+    const next = hero.querySelector<HTMLButtonElement>("[data-hero-next]");
+
+
+
+    if (slides.length <= 1) return;
+
+
+
+    let current = slides.findIndex((slide) => slide.classList.contains("is-active"));
+
+    if (current < 0) current = 0;
+
+
+
+    let timer: number | undefined;
+
+    const reducedMotion = window.matchMedia(
+
+      "(prefers-reduced-motion: reduce)",
+
+    ).matches;
+
+
+
+    function restartKenBurns(slide: HTMLElement) {
+
+      if (reducedMotion) return;
+
+      const img = slide.querySelector<HTMLElement>("img");
+
+      if (!img) return;
+
+      img.style.animation = "none";
+
+      void img.offsetWidth;
+
+      img.style.removeProperty("animation");
+
+    }
+
+
+
+    function updateDots(index: number) {
+
+      dots.forEach((dot, i) => {
+
+        const active = i === index;
+
+        dot.classList.toggle("is-active", active);
+
+        dot.setAttribute("aria-selected", active ? "true" : "false");
+
+      });
+
+    }
+
+
+
+    function activateSlide(index: number) {
+
+      if (index === current) return;
+
+
+
+      slides[current]?.classList.remove("is-active");
+
+      slides[current]?.setAttribute("aria-hidden", "true");
+
+
+
+      current = (index + slides.length) % slides.length;
+
+
+
+      slides[current]?.classList.add("is-active");
+
+      slides[current]?.setAttribute("aria-hidden", "false");
+
+      restartKenBurns(slides[current]!);
+
+      updateDots(current);
+
+    }
+
+
+
+    function scheduleAuto() {
+
+      window.clearInterval(timer);
+
+      timer = window.setInterval(() => {
+
+        activateSlide(current + 1);
+
+      }, INTERVAL_MS);
+
+    }
+
+
+
+    restartKenBurns(slides[current]!);
+
+    scheduleAuto();
+
+
+
+    prev?.addEventListener("click", () => {
+
+      activateSlide(current - 1);
+
+      scheduleAuto();
+
+    });
+
+
+
+    next?.addEventListener("click", () => {
+
+      activateSlide(current + 1);
+
+      scheduleAuto();
+
+    });
+
+
+
+    dots.forEach((dot) => {
+
+      dot.addEventListener("click", () => {
+
+        const index = Number(dot.dataset.heroDot);
+
+        if (!Number.isNaN(index)) {
+
+          activateSlide(index);
+
+          scheduleAuto();
+
+        }
+
+      });
+
+    });
+
+  }
+
+
+
+  initDailyGreeting();
+
+  initHeroCarousel();
+
+  document.addEventListener("astro:page-load", () => {
+
+    initDailyGreeting();
+
+    initHeroCarousel();
+
+  });
+
+</script>
+
+
+
+<style>
+
+  .hero-banner {
+
+    position: relative;
+
+    width: 100%;
+
+    height: 40vh;
+
+    min-height: 260px;
+
+    max-height: 360px;
+
+    overflow: hidden;
+
+    isolation: isolate;
+
+  }
+
+
+
+  @media (min-width: 768px) {
+
+    .hero-banner {
+
+      height: 55vh;
+
+      min-height: 360px;
+
+      max-height: 620px;
+
+    }
+
+  }
+
+
+
+  .hero-banner__slides {
+
+    position: absolute;
+
+    inset: 0;
+
+  }
+
+
+
+  .hero-banner__slide {
+
+    position: absolute;
+
+    inset: 0;
+
+    opacity: 0;
+
+    transition: opacity 1.5s ease;
+
+  }
+
+
+
+  .hero-banner__slide.is-active {
+
+    opacity: 1;
+
+    z-index: 1;
+
+  }
+
+
+
+  .hero-banner__slide img {
+
+    width: 100%;
+
+    height: 100%;
+
+    object-fit: cover;
+
+    transform: scale(1.08) translateY(20px);
+
+  }
+
+
+
+  .hero-banner__slide.is-active img {
+
+    animation: hero-ken-burns 9s ease-out forwards;
+
+  }
+
+
+
+  @keyframes hero-ken-burns {
+
+    from {
+
+      transform: scale(1.08) translateY(20px);
+
+    }
+
+    to {
+
+      transform: scale(1) translateY(0);
+
+    }
+
+  }
+
+
+
+  @media (prefers-reduced-motion: reduce) {
+
+    .hero-banner__slide img {
+
+      transform: scale(1) translateY(0) !important;
+
+      animation: none !important;
+
+    }
+
+  }
+
+
+
+  .hero-banner__top-scrim {
+
+    position: absolute;
+
+    top: 0;
+
+    left: 0;
+
+    right: 0;
+
+    height: 140px;
+
+    z-index: 2;
+
+    pointer-events: none;
+
+    background: linear-gradient(
+
+      to bottom,
+
+      rgb(60 50 40 / 42%) 0%,
+
+      rgb(60 50 40 / 18%) 55%,
+
+      rgb(60 50 40 / 0%) 100%
+
+    );
+
+  }
+
+
+
+  .hero-banner__text-scrim {
+
+    position: absolute;
+
+    inset: 0;
+
+    z-index: 2;
+
+    pointer-events: none;
+
+    background: linear-gradient(
+
+      105deg,
+
+      rgb(91 81 72 / 42%) 0%,
+
+      rgb(91 81 72 / 16%) 38%,
+
+      transparent 62%
+
+    );
+
+  }
+
+
+
+  .hero-banner__bottom-scrim {
+
+    position: absolute;
+
+    left: 0;
+
+    right: 0;
+
+    bottom: 0;
+
+    height: clamp(72px, 18vh, 140px);
+
+    z-index: 2;
+
+    pointer-events: none;
+
+    background: linear-gradient(
+
+      to top,
+
+      var(--color-background) 0%,
+
+      rgb(248 245 239 / 72%) 42%,
+
+      rgb(248 245 239 / 0%) 100%
+
+    );
+
+    backdrop-filter: blur(2px);
+
+  }
+
+
+
+  .hero-banner__content {
+
+    position: relative;
+
+    z-index: 3;
+
+    display: flex;
+
+    align-items: center;
+
+    height: 100%;
+
+    padding-block: 1.5rem;
+
+    padding-top: calc(4rem + 0.75rem);
+
+  }
+
+
+
+  .hero-banner__copy {
+
+    max-width: 28rem;
+
+  }
+
+
+
+  .hero-banner__title {
+
+    margin: 0;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 0.2rem;
+
+    color: #fff9f2;
+
+    font-family: var(--font-heading);
+
+    font-size: clamp(1.35rem, 3.2vw, 1.85rem);
+
+    line-height: 1.35;
+
+    text-shadow: 0 2px 18px rgb(91 81 72 / 35%);
+
+  }
+
+
+
+  .hero-banner__intro {
+
+    margin: 0.75rem 0 0;
+
+    color: rgb(255 249 242 / 92%);
+
+    font-size: 0.92rem;
+
+    line-height: 1.75;
+
+    text-shadow: 0 1px 12px rgb(91 81 72 / 28%);
+
+  }
+
+
+
+  .hero-banner__btn {
+
+    display: inline-flex;
+
+    margin-top: 1.1rem;
+
+    min-height: 2.5rem;
+
+    padding: 0.55rem 1.15rem;
+
+    border-radius: 999px;
+
+    background-color: var(--color-brand);
+
+    color: var(--color-text-primary);
+
+    font-size: 0.9rem;
+
+    text-decoration: none;
+
+    box-shadow: 0 4px 16px rgb(91 81 72 / 14%);
+
+    transition:
+
+      transform 0.3s ease,
+
+      background-color 0.3s ease;
+
+  }
+
+
+
+  .hero-banner__btn:hover {
+
+    transform: translateY(-1px);
+
+    background-color: #efcaa5;
+
+  }
+
+
+
+  .hero-banner__arrow {
+
+    position: absolute;
+
+    top: 50%;
+
+    z-index: 4;
+
+    transform: translateY(-50%);
+
+    width: 2.25rem;
+
+    height: 2.25rem;
+
+    border: 0;
+
+    border-radius: 999px;
+
+    background: rgb(255 249 242 / 78%);
+
+    color: var(--color-text-primary);
+
+    font-size: 1.35rem;
+
+    line-height: 1;
+
+    cursor: pointer;
+
+    box-shadow: 0 2px 10px rgb(91 81 72 / 12%);
+
+    transition:
+
+      background-color 0.3s ease,
+
+      transform 0.3s ease;
+
+  }
+
+
+
+  .hero-banner__arrow:hover {
+
+    background: rgb(255 249 242 / 92%);
+
+    transform: translateY(-50%) scale(1.04);
+
+  }
+
+
+
+  .hero-banner__arrow--prev {
+
+    left: 1rem;
+
+  }
+
+
+
+  .hero-banner__arrow--next {
+
+    right: 1rem;
+
+  }
+
+
+
+  @media (min-width: 768px) {
+
+    .hero-banner__arrow--prev {
+
+      left: 1.25rem;
+
+    }
+
+
+
+    .hero-banner__arrow--next {
+
+      right: 1.25rem;
+
+    }
+
+  }
+
+
+
+  .hero-banner__dots {
+
+    position: absolute;
+
+    left: 50%;
+
+    bottom: 1rem;
+
+    z-index: 4;
+
+    transform: translateX(-50%);
+
+    display: flex;
+
+    gap: 0.45rem;
+
+  }
+
+
+
+  .hero-banner__dot {
+
+    width: 0.45rem;
+
+    height: 0.45rem;
+
+    padding: 0;
+
+    border: 0;
+
+    border-radius: 999px;
+
+    background: rgb(255 249 242 / 45%);
+
+    cursor: pointer;
+
+    transition:
+
+      width 0.3s ease,
+
+      background-color 0.3s ease;
+
+  }
+
+
+
+  .hero-banner__dot.is-active {
+
+    width: 1.1rem;
+
+    background: rgb(255 249 242 / 88%);
+
+  }
+
+
+
+  .hero-greeting {
+
+    margin: 0.75rem auto 0;
+
+    text-align: center;
+
+    color: var(--color-text-secondary);
+
+    font-size: 0.88rem;
+
+    line-height: 1.7;
+
+    letter-spacing: 0.02em;
+
+  }
+
+</style>
+
+

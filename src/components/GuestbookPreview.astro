@@ -1,0 +1,114 @@
+---
+import SectionHeader from "./SectionHeader.astro";
+
+const messages = [
+  {
+    name: "小云 ☁️",
+    text: "宛瑜的网站好温柔，看了心情都变好了～",
+    hearts: 12,
+    color: "#EBC9C4",
+  },
+  {
+    name: "阿哲",
+    text: "加油呀！实习辛苦了，记得好好休息。",
+    hearts: 8,
+    color: "#E7B98A",
+  },
+  {
+    name: "Mimi",
+    text: "五月天那篇什么时候写！等你更新 🎵",
+    hearts: 5,
+    color: "#A9C8A2",
+  },
+];
+---
+
+<section class="side-card guestbook-preview" data-reveal="content" data-reveal-delay="80">
+  <SectionHeader
+    emoji="💬"
+    title="留言板"
+    linkHref="/guestbook"
+    linkLabel="去留言 →"
+  />
+
+  <ul class="guestbook-preview__list">
+    {
+      messages.map((message) => (
+        <li class="guestbook-preview__item">
+          <div
+            class="guestbook-preview__avatar"
+            style={{ backgroundColor: message.color }}
+            aria-hidden="true"
+          >
+            {message.name.charAt(0)}
+          </div>
+          <div class="guestbook-preview__content">
+            <p class="guestbook-preview__name">{message.name}</p>
+            <p class="guestbook-preview__text">{message.text}</p>
+            <p class="guestbook-preview__hearts">♥ {message.hearts}</p>
+          </div>
+        </li>
+      ))
+    }
+  </ul>
+</section>
+
+<style>
+  .guestbook-preview {
+    background-color: var(--color-surface);
+    border-radius: 20px;
+    padding: 1.15rem 1.1rem 1.2rem;
+    box-shadow: var(--shadow-card);
+  }
+
+  .guestbook-preview__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .guestbook-preview__item {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 0.65rem;
+    align-items: start;
+  }
+
+  .guestbook-preview__avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-size: 0.82rem;
+    color: var(--color-text-primary);
+    font-weight: 600;
+  }
+
+  .guestbook-preview__name {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--color-text-primary);
+    line-height: 1.3;
+  }
+
+  .guestbook-preview__text {
+    margin: 0.2rem 0 0;
+    font-size: 0.8rem;
+    line-height: 1.55;
+    color: var(--color-text-secondary);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .guestbook-preview__hearts {
+    margin: 0.25rem 0 0;
+    font-size: 0.72rem;
+    color: rgb(231 185 138 / 90%);
+  }
+</style>
