@@ -1,0 +1,87 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SectionTitle from "../../components/SectionTitle.astro";
+import AlbumCard from "../../components/gallery/AlbumCard.astro";
+import {
+  formatAlbumDateLabel,
+  getAlbumSlug,
+  sortGalleryAlbums,
+} from "../../utils/gallery";
+
+const albums = sortGalleryAlbums(await getCollection("gallery"));
+---
+
+<BaseLayout title="相册 | 宛瑜的小窝" description="把日常和小旅行都收进相册里。">
+  <div class="gallery-index container-content">
+    <header class="gallery-index__header">
+      <SectionTitle
+        title="相册"
+        subtitle="把日常和小旅行都收进这里 📷"
+      />
+    </header>
+
+    {
+      albums.length === 0 ? (
+        <p class="gallery-index__empty" data-reveal="content">
+          還沒有相冊哦，等宛瑜多拍幾張再來看看 🌱
+        </p>
+      ) : (
+        <div class="gallery-index__grid">
+          {
+            albums.map((album, index) => (
+              <AlbumCard
+                title={album.data.title}
+                cover={album.data.cover}
+                dateLabel={formatAlbumDateLabel(album.data)}
+                photoCount={album.data.photos.length}
+                href={`/gallery/${getAlbumSlug(album.id)}/`}
+                data-reveal="content"
+                data-reveal-delay={`${index * 60}`}
+              />
+            ))
+          }
+        </div>
+      )
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .gallery-index {
+    padding-block: calc(4rem + 2rem) 4.5rem;
+  }
+
+  .gallery-index .section-title {
+    margin-bottom: 0;
+  }
+
+  .gallery-index__empty {
+    max-width: 36rem;
+    margin: 2.5rem auto 0;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 0.92rem;
+  }
+
+  .gallery-index__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-card-gap);
+    margin-top: 2.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .gallery-index__grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--spacing-card-gap-lg);
+      margin-top: 3rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .gallery-index__grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+</style>

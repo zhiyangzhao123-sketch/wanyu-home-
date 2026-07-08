@@ -1,0 +1,139 @@
+---
+import { getCollection } from "astro:content";
+import { getImage } from "astro:assets";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import GalleryAlbum from "../../components/gallery/GalleryAlbum.tsx";
+import {
+  formatAlbumDateLabel,
+  getAlbumSlug,
+  type GalleryAlbumEntry,
+} from "../../utils/gallery";
+
+export async function getStaticPaths() {
+  const albums = await getCollection("gallery");
+
+  return albums.map((album) => ({
+    params: { album: getAlbumSlug(album.id) },
+    props: { album },
+  }));
+}
+
+interface Props {
+  album: GalleryAlbumEntry;
+}
+
+const { album } = Astro.props;
+
+const photos = await Promise.all(
+  album.data.photos.map(async (photo) => {
+    const full = await getImage({
+      src: photo.src,
+      width: 1400,
+      quality: 85,
+    });
+    const thumb = await getImage({
+      src: photo.src,
+      width: 900,
+      quality: 80,
+    });
+
+    return {
+      src: full.src,
+      thumbSrc: thumb.src,
+      width: full.attributes.width ?? photo.src.width,
+      height: full.attributes.height ?? photo.src.height,
+      caption: photo.caption,
+      date: photo.date,
+    };
+  }),
+);
+---
+
+<BaseLayout
+  title={`${album.data.title} · 相册 | 宛瑜的小窝`}
+  description={album.data.description ?? `${album.data.title} 相册`}
+>
+  <article class="gallery-album-page container-content">
+    <header class="gallery-album-page__header" data-reveal="content">
+      <a href="/gallery/" class="gallery-album-page__back">← 返回相册</a>
+      <h1 class="gallery-album-page__title">{album.data.title}</h1>
+      <p class="gallery-album-page__meta">
+        <span>{album.data.photos.length} 張</span>
+        <span aria-hidden="true">·</span>
+        <span>{formatAlbumDateLabel(album.data)}</span>
+      </p>
+      {
+        album.data.description && (
+          <p class="gallery-album-page__description">{album.data.description}</p>
+        )
+      }
+    </header>
+
+    <div class="gallery-album-page__photos" data-reveal="content" data-reveal-delay="80">
+      <GalleryAlbum client:load photos={photos} />
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .gallery-album-page {
+    padding-block: calc(4rem + 2rem) 4.5rem;
+  }
+
+  .gallery-album-page__header {
+    max-width: var(--width-reading);
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .gallery-album-page__back {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    color: var(--color-text-secondary);
+    font-size: 0.88rem;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .gallery-album-page__back:hover {
+    color: var(--color-brand);
+  }
+
+  .gallery-album-page__title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 28px;
+    line-height: 1.35;
+    color: var(--color-text-primary);
+  }
+
+  .gallery-album-page__meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    margin: 0.65rem 0 0;
+    font-size: 0.82rem;
+    color: var(--color-text-secondary);
+  }
+
+  .gallery-album-page__description {
+    margin: 1rem auto 0;
+    max-width: 34rem;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: var(--color-text-secondary);
+  }
+
+  .gallery-album-page__photos {
+    max-width: var(--width-reading);
+    margin: 2.5rem auto 0;
+  }
+
+  @media (min-width: 768px) {
+    .gallery-album-page__photos {
+      margin-top: 3rem;
+    }
+  }
+</style>

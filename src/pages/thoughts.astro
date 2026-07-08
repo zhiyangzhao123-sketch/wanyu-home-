@@ -1,0 +1,358 @@
+---
+import { getCollection, type CollectionEntry } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SectionTitle from "../components/SectionTitle.astro";
+import ThoughtNote from "../components/ThoughtNote.astro";
+import {
+  formatMonthGroup,
+  formatMonthAnchorId,
+  formatMonthAnchorLabel,
+} from "../utils/content";
+
+const allThoughts = (await getCollection("thoughts")).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+
+interface MonthGroup {
+  anchorId: string;
+  anchorLabel: string;
+  heading: string;
+  entries: CollectionEntry<"thoughts">[];
+}
+
+const monthGroups: MonthGroup[] = [];
+for (const thought of allThoughts) {
+  const anchorId = formatMonthAnchorId(thought.data.pubDate);
+  let group = monthGroups.find((g) => g.anchorId === anchorId);
+  if (!group) {
+    group = {
+      anchorId,
+      anchorLabel: formatMonthAnchorLabel(thought.data.pubDate),
+      heading: formatMonthGroup(thought.data.pubDate),
+      entries: [],
+    };
+    monthGroups.push(group);
+  }
+  group.entries.push(thought);
+}
+---
+
+<BaseLayout title="碎碎念 | 宛瑜的小窝" description="一些没头没尾的小心情，随手记在这里。">
+  <div class="thoughts-page">
+    <div class="thoughts-page__ambient" aria-hidden="true"></div>
+
+    <div class="thoughts-page__wrap container-content">
+      <header class="thoughts-page__header">
+        <SectionTitle title="碎碎念" subtitle="一些没头没尾的小心情" />
+      </header>
+
+      {
+        monthGroups.length > 0 && (
+          <nav class="thoughts-anchor" aria-label="按月份跳转">
+            <ul class="thoughts-anchor__list">
+              {monthGroups.map((group, index) => (
+                <li>
+                  <a
+                    href={`#${group.anchorId}`}
+                    class="thoughts-anchor__item"
+                    data-anchor-target={group.anchorId}
+                    aria-current={index === 0 ? "true" : undefined}
+                  >
+                    <span class="thoughts-anchor__dot" aria-hidden="true" />
+                    <span class="thoughts-anchor__label">{group.anchorLabel}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )
+      }
+
+      <div class="thoughts-board">
+        <div class="thoughts-board__texture" aria-hidden="true" />
+
+        {
+          monthGroups.length === 0 ? (
+            <p class="thoughts-board__empty" data-reveal="content">
+              还没有碎碎念呢，等宛瑜想到什么再来写点什么 🌱
+            </p>
+          ) : (
+            monthGroups.map((group) => (
+              <section class="thoughts-month" id={group.anchorId}>
+                <h2 class="thoughts-month__heading" data-reveal="content">
+                  {group.heading}
+                </h2>
+                <ul class="thoughts-month__notes">
+                  {group.entries.map((thought, index) => (
+                    <ThoughtNote
+                      content={thought.body?.trim() ?? ""}
+                      pubDate={thought.data.pubDate}
+                      mood={thought.data.mood}
+                      weather={thought.data.weather}
+                      index={index}
+                    />
+                  ))}
+                </ul>
+              </section>
+            ))
+          )
+        }
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  function initThoughtsAnchor() {
+    const links = document.querySelectorAll<HTMLAnchorElement>(".thoughts-anchor__item");
+    const sections = document.querySelectorAll<HTMLElement>(".thoughts-month");
+    if (!links.length || !sections.length) return;
+
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const setActive = (id: string) => {
+      links.forEach((link) => {
+        const isActive = link.dataset.anchorTarget === id;
+        link.classList.toggle("is-active", isActive);
+        if (isActive) {
+          link.setAttribute("aria-current", "true");
+        } else {
+          link.removeAttribute("aria-current");
+        }
+      });
+    };
+
+    links.forEach((link) => {
+      link.addEventListener("click", (event) => {
+        const targetId = link.dataset.anchorTarget;
+        if (!targetId) return;
+        const target = document.getElementById(targetId);
+        if (!target) return;
+
+        event.preventDefault();
+        target.scrollIntoView({
+          behavior: prefersReduced ? "auto" : "smooth",
+          block: "start",
+        });
+        history.replaceState(null, "", `#${targetId}`);
+        setActive(targetId);
+      });
+    });
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActive(entry.target.id);
+          }
+        });
+      },
+      {
+        rootMargin: "-20% 0px -65% 0px",
+        threshold: 0,
+      },
+    );
+
+    sections.forEach((section) => observer.observe(section));
+  }
+
+  initThoughtsAnchor();
+  document.addEventListener("astro:page-load", initThoughtsAnchor);
+</script>
+
+<style>
+  .thoughts-page {
+    position: relative;
+    padding-block: calc(4rem + 2rem) 5rem;
+  }
+
+  .thoughts-page__ambient {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(circle at 18% 12%, rgb(235 201 196 / 32%), transparent 55%),
+      radial-gradient(circle at 82% 88%, rgb(169 200 162 / 22%), transparent 50%),
+      linear-gradient(160deg, var(--color-background) 0%, var(--color-surface-alt) 100%);
+  }
+
+  .thoughts-page__wrap {
+    position: relative;
+  }
+
+  .thoughts-page__header :global(.section-title) {
+    margin-bottom: 1.5rem;
+  }
+
+  /* Anchor nav: mobile-first horizontal pill strip, becomes a fixed right sidebar on desktop */
+  .thoughts-anchor {
+    position: sticky;
+    top: 4.25rem;
+    z-index: 20;
+    margin: 0 -1.25rem 1.75rem;
+  }
+
+  .thoughts-anchor__list {
+    display: flex;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0.5rem 1.25rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .thoughts-anchor__list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .thoughts-anchor__item {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    background-color: rgb(255 253 248 / 85%);
+    color: var(--color-text-secondary);
+    font-size: 0.82rem;
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      color 0.25s ease,
+      background-color 0.25s ease;
+  }
+
+  .thoughts-anchor__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--color-divider);
+    transition: background-color 0.25s ease;
+  }
+
+  .thoughts-anchor__item.is-active {
+    color: var(--color-text-primary);
+    background-color: rgb(231 185 138 / 20%);
+  }
+
+  .thoughts-anchor__item.is-active .thoughts-anchor__dot {
+    background-color: var(--color-brand);
+  }
+
+  @media (min-width: 1024px) {
+    .thoughts-anchor {
+      position: fixed;
+      top: 50%;
+      right: 1.25rem;
+      margin: 0;
+      transform: translateY(-50%);
+    }
+
+    .thoughts-anchor__list {
+      flex-direction: column;
+      overflow: visible;
+      padding: 0;
+      gap: 0.9rem;
+    }
+
+    .thoughts-anchor__item {
+      justify-content: flex-end;
+      padding: 0.15rem 0;
+      background-color: transparent;
+    }
+
+    .thoughts-anchor__item.is-active {
+      background-color: transparent;
+    }
+  }
+
+  @media (min-width: 1440px) {
+    .thoughts-anchor {
+      right: 2.5rem;
+    }
+  }
+
+  .thoughts-board {
+    position: relative;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 3rem;
+    border-radius: 28px;
+    background: linear-gradient(135deg, rgb(247 238 222 / 92%), rgb(236 222 196 / 92%));
+    box-shadow:
+      inset 0 2px 14px rgb(91 81 72 / 10%),
+      0 18px 45px rgb(91 81 72 / 12%);
+    border: 1px solid rgb(210 190 160 / 25%);
+    overflow: hidden;
+  }
+
+  @media (min-width: 640px) {
+    .thoughts-board {
+      padding: 3rem 2.5rem 3.5rem;
+    }
+  }
+
+  .thoughts-board__texture {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.35 0 0 0 0 0.28 0 0 0 0 0.2 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .thoughts-board__empty {
+    position: relative;
+    max-width: 28rem;
+    margin: 1.5rem auto;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+  }
+
+  .thoughts-month {
+    position: relative;
+    scroll-margin-top: 5.5rem;
+  }
+
+  .thoughts-month + .thoughts-month {
+    margin-top: 3rem;
+  }
+
+  .thoughts-month__heading {
+    position: relative;
+    margin: 0 0 1.5rem;
+    padding-bottom: 0.85rem;
+    font-family: var(--font-heading);
+    font-size: 22px;
+    color: var(--color-text-secondary);
+    border-bottom: 1px solid rgb(210 190 160 / 35%);
+  }
+
+  .thoughts-month__notes {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    columns: 1;
+    column-gap: 1.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .thoughts-month__notes {
+      columns: 2;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .thoughts-month__notes {
+      columns: 3;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+</style>

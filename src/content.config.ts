@@ -10,6 +10,7 @@ const blog = defineCollection({
     category: z.enum(["日常", "学习日记"]),
     cover: z.string().optional(),
     draft: z.boolean().default(false),
+    pinned: z.boolean().optional().default(false),
   }),
 });
 
@@ -23,13 +24,22 @@ const thoughts = defineCollection({
 });
 
 const gallery = defineCollection({
-  loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/gallery" }),
-  schema: z.object({
-    title: z.string().optional(),
-    date: z.coerce.date(),
-    image: z.string(),
-    description: z.string().optional(),
-  }),
+  loader: glob({ pattern: "**/index.{md,mdx}", base: "./src/content/gallery" }),
+  schema: ({ image }) =>
+    z.object({
+      title: z.string(),
+      date: z.coerce.date(),
+      dateRange: z.string().optional(),
+      description: z.string().optional(),
+      cover: image(),
+      photos: z.array(
+        z.object({
+          src: image(),
+          caption: z.string().optional(),
+          date: z.string().optional(),
+        }),
+      ),
+    }),
 });
 
 export const collections = { blog, thoughts, gallery };

@@ -1,0 +1,1289 @@
+ astro.config.mjs                        |   3 [32m+[m[31m-[m
+ package-lock.json                       | 741 [32m++++++++++++++++++++++++++++++++[m
+ package.json                            |   1 [32m+[m
+ src/assets/README.md                    |  46 [32m++[m
+ src/components/ArticleCompactList.astro |  25 [32m+[m[31m-[m
+ src/components/LatestArticles.astro     |  25 [32m+[m[31m-[m
+ src/content.config.ts                   |   1 [32m+[m
+ src/content/blog/taipei-coffee-shops.md |  16 [31m-[m
+ src/utils/content.ts                    |  65 [32m++[m[31m-[m
+ 9 files changed, 863 insertions(+), 60 deletions(-)
+
+[1mdiff --git a/astro.config.mjs b/astro.config.mjs[m
+[1mindex 478f67f..165bdf8 100644[m
+[1m--- a/astro.config.mjs[m
+[1m+++ b/astro.config.mjs[m
+[36m@@ -1,12 +1,13 @@[m
+ // @ts-check[m
+ import { defineConfig } from 'astro/config';[m
+ import react from '@astrojs/react';[m
+[32m+[m[32mimport mdx from '@astrojs/mdx';[m
+ import tailwindcss from '@tailwindcss/vite';[m
+ [m
+ export default defineConfig({[m
+   site: 'https://linwanyu.top',[m
+   output: 'static',[m
+[31m-  integrations: [react()],[m
+[32m+[m[32m  integrations: [react(), mdx()],[m
+   vite: {[m
+     plugins: [tailwindcss()],[m
+   },[m
+[1mdiff --git a/package-lock.json b/package-lock.json[m
+[1mindex 2699cb9..ebe827d 100644[m
+[1m--- a/package-lock.json[m
+[1m+++ b/package-lock.json[m
+[36m@@ -8,6 +8,7 @@[m
+       "name": "wanyu-home",[m
+       "version": "0.0.1",[m
+       "dependencies": {[m
+[32m+[m[32m        "@astrojs/mdx": "^4.3.14",[m
+         "@astrojs/react": "^4.2.0",[m
+         "@fontsource/nunito": "^5.2.7",[m
+         "astro": "^5.7.0",[m
+[36m@@ -65,6 +66,33 @@[m
+         "vfile": "^6.0.3"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/@astrojs/mdx": {[m
+[32m+[m[32m      "version": "4.3.14",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/@astrojs/mdx/-/mdx-4.3.14.tgz",[m
+[32m+[m[32m      "integrity": "sha512-FBrqJQORVm+rkRa2TS5CjU9PBA6hkhrwLVBSS9A77gN2+iehvjq1w6yya/d0YKC7osiVorKkr3Qd9wNbl0ZkGA==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@astrojs/markdown-remark": "6.3.11",[m
+[32m+[m[32m        "@mdx-js/mdx": "^3.1.1",[m
+[32m+[m[32m        "acorn": "^8.15.0",[m
+[32m+[m[32m        "es-module-lexer": "^1.7.0",[m
+[32m+[m[32m        "estree-util-visit": "^2.0.0",[m
+[32m+[m[32m        "hast-util-to-html": "^9.0.5",[m
+[32m+[m[32m        "piccolore": "^0.1.3",[m
+[32m+[m[32m        "rehype-raw": "^7.0.0",[m
+[32m+[m[32m        "remark-gfm": "^4.0.1",[m
+[32m+[m[32m        "remark-smartypants": "^3.0.2",[m
+[32m+[m[32m        "source-map": "^0.7.6",[m
+[32m+[m[32m        "unist-util-visit": "^5.0.0",[m
+[32m+[m[32m        "vfile": "^6.0.3"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "engines": {[m
+[32m+[m[32m        "node": "18.20.8 || ^20.3.0 || >=22.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "peerDependencies": {[m
+[32m+[m[32m        "astro": "^5.0.0"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/@astrojs/prism": {[m
+       "version": "3.3.0",[m
+       "resolved": "https://registry.npmjs.org/@astrojs/prism/-/prism-3.3.0.tgz",[m
+[36m@@ -1384,6 +1412,43 @@[m
+         "@jridgewell/sourcemap-codec": "^1.4.14"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/@mdx-js/mdx": {[m
+[32m+[m[32m      "version": "3.1.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/@mdx-js/mdx/-/mdx-3.1.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-f6ZO2ifpwAQIpzGWaBQT2TXxPv6z3RBzQKpVftEWN78Vl/YweF1uwussDx8ECAXVtr3Rs89fKyG9YlzUs9DyGQ==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree": "^1.0.0",[m
+[32m+[m[32m        "@types/estree-jsx": "^1.0.0",[m
+[32m+[m[32m        "@types/hast": "^3.0.0",[m
+[32m+[m[32m        "@types/mdx": "^2.0.0",[m
+[32m+[m[32m        "acorn": "^8.0.0",[m
+[32m+[m[32m        "collapse-white-space": "^2.0.0",[m
+[32m+[m[32m        "devlop": "^1.0.0",[m
+[32m+[m[32m        "estree-util-is-identifier-name": "^3.0.0",[m
+[32m+[m[32m        "estree-util-scope": "^1.0.0",[m
+[32m+[m[32m        "estree-walker": "^3.0.0",[m
+[32m+[m[32m        "hast-util-to-jsx-runtime": "^2.0.0",[m
+[32m+[m[32m        "markdown-extensions": "^2.0.0",[m
+[32m+[m[32m        "recma-build-jsx": "^1.0.0",[m
+[32m+[m[32m        "recma-jsx": "^1.0.0",[m
+[32m+[m[32m        "recma-stringify": "^1.0.0",[m
+[32m+[m[32m        "rehype-recma": "^1.0.0",[m
+[32m+[m[32m        "remark-mdx": "^3.0.0",[m
+[32m+[m[32m        "remark-parse": "^11.0.0",[m
+[32m+[m[32m        "remark-rehype": "^11.0.0",[m
+[32m+[m[32m        "source-map": "^0.7.0",[m
+[32m+[m[32m        "unified": "^11.0.0",[m
+[32m+[m[32m        "unist-util-position-from-estree": "^2.0.0",[m
+[32m+[m[32m        "unist-util-stringify-position": "^4.0.0",[m
+[32m+[m[32m        "unist-util-visit": "^5.0.0",[m
+[32m+[m[32m        "vfile": "^6.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/@oslojs/encoding": {[m
+       "version": "1.1.0",[m
+       "resolved": "https://registry.npmjs.org/@oslojs/encoding/-/encoding-1.1.0.tgz",[m
+[36m@@ -2195,6 +2260,15 @@[m
+       "integrity": "sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==",[m
+       "license": "MIT"[m
+     },[m
+[32m+[m[32m    "node_modules/@types/estree-jsx": {[m
+[32m+[m[32m      "version": "1.0.5",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/@types/estree-jsx/-/estree-jsx-1.0.5.tgz",[m
+[32m+[m[32m      "integrity": "sha512-52CcUVNFyfb1A2ALocQw/Dd1BQFNmSdkuC3BkZ6iqhdMfQz7JWOFRuJFloOzjk+6WijU56m9oKXFAXc7o3Towg==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree": "*"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/@types/hast": {[m
+       "version": "3.0.4",[m
+       "resolved": "https://registry.npmjs.org/@types/hast/-/hast-3.0.4.tgz",[m
+[36m@@ -2213,6 +2287,12 @@[m
+         "@types/unist": "*"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/@types/mdx": {[m
+[32m+[m[32m      "version": "2.0.14",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/@types/mdx/-/mdx-2.0.14.tgz",[m
+[32m+[m[32m      "integrity": "sha512-T48PeuJtvLosNTPVhfnIp3i/n3a4g4Bad7YCq5k64D4u7NwDrAotikQ+5+sjtUvBmxCMlbo3dVL+C2dP0rWHzg==",[m
+[32m+[m[32m      "license": "MIT"[m
+[32m+[m[32m    },[m
+     "node_modules/@types/ms": {[m
+       "version": "2.1.0",[m
+       "resolved": "https://registry.npmjs.org/@types/ms/-/ms-2.1.0.tgz",[m
+[36m@@ -2290,6 +2370,15 @@[m
+         "node": ">=0.4.0"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/acorn-jsx": {[m
+[32m+[m[32m      "version": "5.3.2",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/acorn-jsx/-/acorn-jsx-5.3.2.tgz",[m
+[32m+[m[32m      "integrity": "sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "peerDependencies": {[m
+[32m+[m[32m        "acorn": "^6.0.0 || ^7.0.0 || ^8.0.0"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/ansi-align": {[m
+       "version": "3.0.1",[m
+       "resolved": "https://registry.npmjs.org/ansi-align/-/ansi-align-3.0.1.tgz",[m
+[36m@@ -2414,6 +2503,15 @@[m
+         "url": "https://github.com/sponsors/wooorm"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/astring": {[m
+[32m+[m[32m      "version": "1.9.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/astring/-/astring-1.9.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-LElXdjswlqjWrPpJFg1Fx4wpkOCxj1TDHlSV4PlaRxHGWko024xICaa97ZkMfs6DRKlCguiAI+rbXv5GWwXIkg==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "bin": {[m
+[32m+[m[32m        "astring": "bin/astring"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/astro": {[m
+       "version": "5.18.2",[m
+       "resolved": "https://registry.npmjs.org/astro/-/astro-5.18.2.tgz",[m
+[36m@@ -2694,6 +2792,16 @@[m
+         "url": "https://github.com/sponsors/wooorm"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/character-reference-invalid": {[m
+[32m+[m[32m      "version": "2.0.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/character-reference-invalid/-/character-reference-invalid-2.0.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-iBZ4F4wRbyORVsu0jPV7gXkOsGYjGHPmAyv+HiHG8gi5PtC9KI2j1+v8/tlibRvjoWX027ypmG/n0HtO5t7unw==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "github",[m
+[32m+[m[32m        "url": "https://github.com/sponsors/wooorm"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/chokidar": {[m
+       "version": "5.0.0",[m
+       "resolved": "https://registry.npmjs.org/chokidar/-/chokidar-5.0.0.tgz",[m
+[36m@@ -2745,6 +2853,16 @@[m
+         "node": ">=6"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/collapse-white-space": {[m
+[32m+[m[32m      "version": "2.1.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/collapse-white-space/-/collapse-white-space-2.1.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-loKTxY1zCOuG4j9f6EPnuyyYkf58RnhhWTvRoZEokgB+WbdXehfjFviyOVYkqzEWz1Q5kRiZdBYS5SwxbQYwzw==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "github",[m
+[32m+[m[32m        "url": "https://github.com/sponsors/wooorm"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/comma-separated-tokens": {[m
+       "version": "2.0.3",[m
+       "resolved": "https://registry.npmjs.org/comma-separated-tokens/-/comma-separated-tokens-2.0.3.tgz",[m
+[36m@@ -3123,6 +3241,38 @@[m
+       "integrity": "sha512-jEQoCwk8hyb2AZziIOLhDqpm5+2ww5uIE6lkO/6jcOCusfk6LhMHpXXfBLXTZ7Ydyt0j4VoUQv6uGNYbdW+kBA==",[m
+       "license": "MIT"[m
+     },[m
+[32m+[m[32m    "node_modules/esast-util-from-estree": {[m
+[32m+[m[32m      "version": "2.0.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/esast-util-from-estree/-/esast-util-from-estree-2.0.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-4CyanoAudUSBAn5K13H4JhsMH6L9ZP7XbLVe/dKybkxMO7eDyLsT8UHl9TRNrU2Gr9nz+FovfSIjuXWJ81uVwQ==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree-jsx": "^1.0.0",[m
+[32m+[m[32m        "devlop": "^1.0.0",[m
+[32m+[m[32m        "estree-util-visit": "^2.0.0",[m
+[32m+[m[32m        "unist-util-position-from-estree": "^2.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/esast-util-from-js": {[m
+[32m+[m[32m      "version": "2.0.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/esast-util-from-js/-/esast-util-from-js-2.0.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-8Ja+rNJ0Lt56Pcf3TAmpBZjmx8ZcK5Ts4cAzIOjsjevg9oSXJnl6SUQ2EevU8tv3h6ZLWmoKL5H4fgWvdvfETw==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree-jsx": "^1.0.0",[m
+[32m+[m[32m        "acorn": "^8.0.0",[m
+[32m+[m[32m        "esast-util-from-estree": "^2.0.0",[m
+[32m+[m[32m        "vfile-message": "^4.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/esbuild": {[m
+       "version": "0.27.7",[m
+       "resolved": "https://registry.npmjs.org/esbuild/-/esbuild-0.27.7.tgz",[m
+[36m@@ -3185,6 +3335,88 @@[m
+         "url": "https://github.com/sponsors/sindresorhus"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/estree-util-attach-comments": {[m
+[32m+[m[32m      "version": "3.0.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/estree-util-attach-comments/-/estree-util-attach-comments-3.0.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-cKUwm/HUcTDsYh/9FgnuFqpfquUbwIqwKM26BVCGDPVgvaCl/nDCCjUfiLlx6lsEZ3Z4RFxNbOQ60pkaEwFxGw==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree": "^1.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/estree-util-build-jsx": {[m
+[32m+[m[32m      "version": "3.0.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/estree-util-build-jsx/-/estree-util-build-jsx-3.0.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-8U5eiL6BTrPxp/CHbs2yMgP8ftMhR5ww1eIKoWRMlqvltHF8fZn5LRDvTKuxD3DUn+shRbLGqXemcP51oFCsGQ==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree-jsx": "^1.0.0",[m
+[32m+[m[32m        "devlop": "^1.0.0",[m
+[32m+[m[32m        "estree-util-is-identifier-name": "^3.0.0",[m
+[32m+[m[32m        "estree-walker": "^3.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/estree-util-is-identifier-name": {[m
+[32m+[m[32m      "version": "3.0.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/estree-util-is-identifier-name/-/estree-util-is-identifier-name-3.0.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-hFtqIDZTIUZ9BXLb8y4pYGyk6+wekIivNVTcmvk8NoOh+VeRn5y6cEHzbURrWbfp1fIqdVipilzj+lfaadNZmg==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/estree-util-scope": {[m
+[32m+[m[32m      "version": "1.0.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/estree-util-scope/-/estree-util-scope-1.0.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-2CAASclonf+JFWBNJPndcOpA8EMJwa0Q8LUFJEKqXLW6+qBvbFZuF5gItbQOs/umBUkjviCSDCbBwU2cXbmrhQ==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree": "^1.0.0",[m
+[32m+[m[32m        "devlop": "^1.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/estree-util-to-js": {[m
+[32m+[m[32m      "version": "2.0.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/estree-util-to-js/-/estree-util-to-js-2.0.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-WDF+xj5rRWmD5tj6bIqRi6CkLIXbbNQUcxQHzGysQzvHmdYG2G7p/Tf0J0gpxGgkeMZNTIjT/AoSvC9Xehcgdg==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree-jsx": "^1.0.0",[m
+[32m+[m[32m        "astring": "^1.8.0",[m
+[32m+[m[32m        "source-map": "^0.7.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/estree-util-visit": {[m
+[32m+[m[32m      "version": "2.0.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/estree-util-visit/-/estree-util-visit-2.0.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-m5KgiH85xAhhW8Wta0vShLcUvOsh3LLPI2YVwcbio1l7E09NTLL1EyMZFM1OyWowoH0skScNbhOPl4kcBgzTww==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree-jsx": "^1.0.0",[m
+[32m+[m[32m        "@types/unist": "^3.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/estree-walker": {[m
+       "version": "3.0.3",[m
+       "resolved": "https://registry.npmjs.org/estree-walker/-/estree-walker-3.0.3.tgz",[m
+[36m@@ -3407,6 +3639,34 @@[m
+         "url": "https://opencollective.com/unified"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/hast-util-to-estree": {[m
+[32m+[m[32m      "version": "3.1.3",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/hast-util-to-estree/-/hast-util-to-estree-3.1.3.tgz",[m
+[32m+[m[32m      "integrity": "sha512-48+B/rJWAp0jamNbAAf9M7Uf//UVqAoMmgXhBdxTDJLGKY+LRnZ99qcG+Qjl5HfMpYNzS5v4EAwVEF34LeAj7w==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree": "^1.0.0",[m
+[32m+[m[32m        "@types/estree-jsx": "^1.0.0",[m
+[32m+[m[32m        "@types/hast": "^3.0.0",[m
+[32m+[m[32m        "comma-separated-tokens": "^2.0.0",[m
+[32m+[m[32m        "devlop": "^1.0.0",[m
+[32m+[m[32m        "estree-util-attach-comments": "^3.0.0",[m
+[32m+[m[32m        "estree-util-is-identifier-name": "^3.0.0",[m
+[32m+[m[32m        "hast-util-whitespace": "^3.0.0",[m
+[32m+[m[32m        "mdast-util-mdx-expression": "^2.0.0",[m
+[32m+[m[32m        "mdast-util-mdx-jsx": "^3.0.0",[m
+[32m+[m[32m        "mdast-util-mdxjs-esm": "^2.0.0",[m
+[32m+[m[32m        "property-information": "^7.0.0",[m
+[32m+[m[32m        "space-separated-tokens": "^2.0.0",[m
+[32m+[m[32m        "style-to-js": "^1.0.0",[m
+[32m+[m[32m        "unist-util-position": "^5.0.0",[m
+[32m+[m[32m        "zwitch": "^2.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/hast-util-to-html": {[m
+       "version": "9.0.5",[m
+       "resolved": "https://registry.npmjs.org/hast-util-to-html/-/hast-util-to-html-9.0.5.tgz",[m
+[36m@@ -3430,6 +3690,33 @@[m
+         "url": "https://opencollective.com/unified"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/hast-util-to-jsx-runtime": {[m
+[32m+[m[32m      "version": "2.3.6",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/hast-util-to-jsx-runtime/-/hast-util-to-jsx-runtime-2.3.6.tgz",[m
+[32m+[m[32m      "integrity": "sha512-zl6s8LwNyo1P9uw+XJGvZtdFF1GdAkOg8ujOw+4Pyb76874fLps4ueHXDhXWdk6YHQ6OgUtinliG7RsYvCbbBg==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree": "^1.0.0",[m
+[32m+[m[32m        "@types/hast": "^3.0.0",[m
+[32m+[m[32m        "@types/unist": "^3.0.0",[m
+[32m+[m[32m        "comma-separated-tokens": "^2.0.0",[m
+[32m+[m[32m        "devlop": "^1.0.0",[m
+[32m+[m[32m        "estree-util-is-identifier-name": "^3.0.0",[m
+[32m+[m[32m        "hast-util-whitespace": "^3.0.0",[m
+[32m+[m[32m        "mdast-util-mdx-expression": "^2.0.0",[m
+[32m+[m[32m        "mdast-util-mdx-jsx": "^3.0.0",[m
+[32m+[m[32m        "mdast-util-mdxjs-esm": "^2.0.0",[m
+[32m+[m[32m        "property-information": "^7.0.0",[m
+[32m+[m[32m        "space-separated-tokens": "^2.0.0",[m
+[32m+[m[32m        "style-to-js": "^1.0.0",[m
+[32m+[m[32m        "unist-util-position": "^5.0.0",[m
+[32m+[m[32m        "vfile-message": "^4.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/hast-util-to-parse5": {[m
+       "version": "8.0.1",[m
+       "resolved": "https://registry.npmjs.org/hast-util-to-parse5/-/hast-util-to-parse5-8.0.1.tgz",[m
+[36m@@ -3527,6 +3814,12 @@[m
+         "url": "https://github.com/sponsors/wooorm"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/inline-style-parser": {[m
+[32m+[m[32m      "version": "0.2.7",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/inline-style-parser/-/inline-style-parser-0.2.7.tgz",[m
+[32m+[m[32m      "integrity": "sha512-Nb2ctOyNR8DqQoR0OwRG95uNWIC0C1lCgf5Naz5H6Ji72KZ8OcFZLz2P5sNgwlyoJ8Yif11oMuYs5pBQa86csA==",[m
+[32m+[m[32m      "license": "MIT"[m
+[32m+[m[32m    },[m
+     "node_modules/iron-webcrypto": {[m
+       "version": "1.2.1",[m
+       "resolved": "https://registry.npmjs.org/iron-webcrypto/-/iron-webcrypto-1.2.1.tgz",[m
+[36m@@ -3536,6 +3829,40 @@[m
+         "url": "https://github.com/sponsors/brc-dd"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/is-alphabetical": {[m
+[32m+[m[32m      "version": "2.0.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/is-alphabetical/-/is-alphabetical-2.0.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-FWyyY60MeTNyeSRpkM2Iry0G9hpr7/9kD40mD/cGQEuilcZYS4okz8SN2Q6rLCJ8gbCt6fN+rC+6tMGS99LaxQ==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "github",[m
+[32m+[m[32m        "url": "https://github.com/sponsors/wooorm"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/is-alphanumerical": {[m
+[32m+[m[32m      "version": "2.0.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/is-alphanumerical/-/is-alphanumerical-2.0.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-hmbYhX/9MUMF5uh7tOXyK/n0ZvWpad5caBA17GsC6vyuCqaWliRG5K1qS9inmUhEMaOBIW7/whAnSwveW/LtZw==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "is-alphabetical": "^2.0.0",[m
+[32m+[m[32m        "is-decimal": "^2.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "github",[m
+[32m+[m[32m        "url": "https://github.com/sponsors/wooorm"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/is-decimal": {[m
+[32m+[m[32m      "version": "2.0.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/is-decimal/-/is-decimal-2.0.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-AAB9hiomQs5DXWcRB1rqsxGUstbRroFOPPVAomNk/3XHR5JyEZChOyTWe2oayKnsSsr/kcGqF+z6yuH6HHpN0A==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "github",[m
+[32m+[m[32m        "url": "https://github.com/sponsors/wooorm"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/is-docker": {[m
+       "version": "3.0.0",[m
+       "resolved": "https://registry.npmjs.org/is-docker/-/is-docker-3.0.0.tgz",[m
+[36m@@ -3560,6 +3887,16 @@[m
+         "node": ">=8"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/is-hexadecimal": {[m
+[32m+[m[32m      "version": "2.0.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/is-hexadecimal/-/is-hexadecimal-2.0.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-DgZQp241c8oO6cA1SbTEWiXeoxV42vlcJxgH+B3hi1AiqqKruZR3ZGF8In3fj4+/y/7rHvlOZLZtgJ/4ttYGZg==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "github",[m
+[32m+[m[32m        "url": "https://github.com/sponsors/wooorm"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/is-inside-container": {[m
+       "version": "1.0.0",[m
+       "resolved": "https://registry.npmjs.org/is-inside-container/-/is-inside-container-1.0.0.tgz",[m
+[36m@@ -3992,6 +4329,18 @@[m
+         "source-map-js": "^1.2.1"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/markdown-extensions": {[m
+[32m+[m[32m      "version": "2.0.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/markdown-extensions/-/markdown-extensions-2.0.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-o5vL7aDWatOTX8LzaS1WMoaoxIiLRQJuIKKe2wAw6IeULDHaqbiqiggmx+pKvZDb1Sj+pE46Sn1T7lCqfFtg1Q==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "engines": {[m
+[32m+[m[32m        "node": ">=16"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "url": "https://github.com/sponsors/sindresorhus"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/markdown-table": {[m
+       "version": "3.0.4",[m
+       "resolved": "https://registry.npmjs.org/markdown-table/-/markdown-table-3.0.4.tgz",[m
+[36m@@ -4158,6 +4507,83 @@[m
+         "url": "https://opencollective.com/unified"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/mdast-util-mdx": {[m
+[32m+[m[32m      "version": "3.0.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/mdast-util-mdx/-/mdast-util-mdx-3.0.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-JfbYLAW7XnYTTbUsmpu0kdBUVe+yKVJZBItEjwyYJiDJuZ9w4eeaqks4HQO+R7objWgS2ymV60GYpI14Ug554w==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "mdast-util-from-markdown": "^2.0.0",[m
+[32m+[m[32m        "mdast-util-mdx-expression": "^2.0.0",[m
+[32m+[m[32m        "mdast-util-mdx-jsx": "^3.0.0",[m
+[32m+[m[32m        "mdast-util-mdxjs-esm": "^2.0.0",[m
+[32m+[m[32m        "mdast-util-to-markdown": "^2.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/mdast-util-mdx-expression": {[m
+[32m+[m[32m      "version": "2.0.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/mdast-util-mdx-expression/-/mdast-util-mdx-expression-2.0.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-J6f+9hUp+ldTZqKRSg7Vw5V6MqjATc+3E4gf3CFNcuZNWD8XdyI6zQ8GqH7f8169MM6P7hMBRDVGnn7oHB9kXQ==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree-jsx": "^1.0.0",[m
+[32m+[m[32m        "@types/hast": "^3.0.0",[m
+[32m+[m[32m        "@types/mdast": "^4.0.0",[m
+[32m+[m[32m        "devlop": "^1.0.0",[m
+[32m+[m[32m        "mdast-util-from-markdown": "^2.0.0",[m
+[32m+[m[32m        "mdast-util-to-markdown": "^2.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/mdast-util-mdx-jsx": {[m
+[32m+[m[32m      "version": "3.2.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/mdast-util-mdx-jsx/-/mdast-util-mdx-jsx-3.2.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-lj/z8v0r6ZtsN/cGNNtemmmfoLAFZnjMbNyLzBafjzikOM+glrjNHPlf6lQDOTccj9n5b0PPihEBbhneMyGs1Q==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree-jsx": "^1.0.0",[m
+[32m+[m[32m        "@types/hast": "^3.0.0",[m
+[32m+[m[32m        "@types/mdast": "^4.0.0",[m
+[32m+[m[32m        "@types/unist": "^3.0.0",[m
+[32m+[m[32m        "ccount": "^2.0.0",[m
+[32m+[m[32m        "devlop": "^1.1.0",[m
+[32m+[m[32m        "mdast-util-from-markdown": "^2.0.0",[m
+[32m+[m[32m        "mdast-util-to-markdown": "^2.0.0",[m
+[32m+[m[32m        "parse-entities": "^4.0.0",[m
+[32m+[m[32m        "stringify-entities": "^4.0.0",[m
+[32m+[m[32m        "unist-util-stringify-position": "^4.0.0",[m
+[32m+[m[32m        "vfile-message": "^4.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/mdast-util-mdxjs-esm": {[m
+[32m+[m[32m      "version": "2.0.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/mdast-util-mdxjs-esm/-/mdast-util-mdxjs-esm-2.0.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-EcmOpxsZ96CvlP03NghtH1EsLtr0n9Tm4lPUJUBccV9RwUOneqSycg19n5HGzCf+10LozMRSObtVr3ee1WoHtg==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree-jsx": "^1.0.0",[m
+[32m+[m[32m        "@types/hast": "^3.0.0",[m
+[32m+[m[32m        "@types/mdast": "^4.0.0",[m
+[32m+[m[32m        "devlop": "^1.0.0",[m
+[32m+[m[32m        "mdast-util-from-markdown": "^2.0.0",[m
+[32m+[m[32m        "mdast-util-to-markdown": "^2.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/mdast-util-phrasing": {[m
+       "version": "4.1.0",[m
+       "resolved": "https://registry.npmjs.org/mdast-util-phrasing/-/mdast-util-phrasing-4.1.0.tgz",[m
+[36m@@ -4423,6 +4849,108 @@[m
+         "url": "https://opencollective.com/unified"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/micromark-extension-mdx-expression": {[m
+[32m+[m[32m      "version": "3.0.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/micromark-extension-mdx-expression/-/micromark-extension-mdx-expression-3.0.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-dD/ADLJ1AeMvSAKBwO22zG22N4ybhe7kFIZ3LsDI0GlsNr2A3KYxb0LdC1u5rj4Nw+CHKY0RVdnHX8vj8ejm4Q==",[m
+[32m+[m[32m      "funding": [[m
+[32m+[m[32m        {[m
+[32m+[m[32m          "type": "GitHub Sponsors",[m
+[32m+[m[32m          "url": "https://github.com/sponsors/unifiedjs"[m
+[32m+[m[32m        },[m
+[32m+[m[32m        {[m
+[32m+[m[32m          "type": "OpenCollective",[m
+[32m+[m[32m          "url": "https://opencollective.com/unified"[m
+[32m+[m[32m        }[m
+[32m+[m[32m      ],[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree": "^1.0.0",[m
+[32m+[m[32m        "devlop": "^1.0.0",[m
+[32m+[m[32m        "micromark-factory-mdx-expression": "^2.0.0",[m
+[32m+[m[32m        "micromark-factory-space": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-character": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-events-to-acorn": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-symbol": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-types": "^2.0.0"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/micromark-extension-mdx-jsx": {[m
+[32m+[m[32m      "version": "3.0.2",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/micromark-extension-mdx-jsx/-/micromark-extension-mdx-jsx-3.0.2.tgz",[m
+[32m+[m[32m      "integrity": "sha512-e5+q1DjMh62LZAJOnDraSSbDMvGJ8x3cbjygy2qFEi7HCeUT4BDKCvMozPozcD6WmOt6sVvYDNBKhFSz3kjOVQ==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree": "^1.0.0",[m
+[32m+[m[32m        "devlop": "^1.0.0",[m
+[32m+[m[32m        "estree-util-is-identifier-name": "^3.0.0",[m
+[32m+[m[32m        "micromark-factory-mdx-expression": "^2.0.0",[m
+[32m+[m[32m        "micromark-factory-space": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-character": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-events-to-acorn": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-symbol": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-types": "^2.0.0",[m
+[32m+[m[32m        "vfile-message": "^4.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/micromark-extension-mdx-md": {[m
+[32m+[m[32m      "version": "2.0.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/micromark-extension-mdx-md/-/micromark-extension-mdx-md-2.0.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-EpAiszsB3blw4Rpba7xTOUptcFeBFi+6PY8VnJ2hhimH+vCQDirWgsMpz7w1XcZE7LVrSAUGb9VJpG9ghlYvYQ==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "micromark-util-types": "^2.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/micromark-extension-mdxjs": {[m
+[32m+[m[32m      "version": "3.0.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/micromark-extension-mdxjs/-/micromark-extension-mdxjs-3.0.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-A873fJfhnJ2siZyUrJ31l34Uqwy4xIFmvPY1oj+Ean5PHcPBYzEsvqvWGaWcfEIr11O5Dlw3p2y0tZWpKHDejQ==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "acorn": "^8.0.0",[m
+[32m+[m[32m        "acorn-jsx": "^5.0.0",[m
+[32m+[m[32m        "micromark-extension-mdx-expression": "^3.0.0",[m
+[32m+[m[32m        "micromark-extension-mdx-jsx": "^3.0.0",[m
+[32m+[m[32m        "micromark-extension-mdx-md": "^2.0.0",[m
+[32m+[m[32m        "micromark-extension-mdxjs-esm": "^3.0.0",[m
+[32m+[m[32m        "micromark-util-combine-extensions": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-types": "^2.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/micromark-extension-mdxjs-esm": {[m
+[32m+[m[32m      "version": "3.0.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/micromark-extension-mdxjs-esm/-/micromark-extension-mdxjs-esm-3.0.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-DJFl4ZqkErRpq/dAPyeWp15tGrcrrJho1hKK5uBS70BCtfrIFg81sqcTVu3Ta+KD1Tk5vAtBNElWxtAa+m8K9A==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree": "^1.0.0",[m
+[32m+[m[32m        "devlop": "^1.0.0",[m
+[32m+[m[32m        "micromark-core-commonmark": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-character": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-events-to-acorn": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-symbol": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-types": "^2.0.0",[m
+[32m+[m[32m        "unist-util-position-from-estree": "^2.0.0",[m
+[32m+[m[32m        "vfile-message": "^4.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/micromark-factory-destination": {[m
+       "version": "2.0.1",[m
+       "resolved": "https://registry.npmjs.org/micromark-factory-destination/-/micromark-factory-destination-2.0.1.tgz",[m
+[36m@@ -4466,6 +4994,33 @@[m
+         "micromark-util-types": "^2.0.0"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/micromark-factory-mdx-expression": {[m
+[32m+[m[32m      "version": "2.0.3",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/micromark-factory-mdx-expression/-/micromark-factory-mdx-expression-2.0.3.tgz",[m
+[32m+[m[32m      "integrity": "sha512-kQnEtA3vzucU2BkrIa8/VaSAsP+EJ3CKOvhMuJgOEGg9KDC6OAY6nSnNDVRiVNRqj7Y4SlSzcStaH/5jge8JdQ==",[m
+[32m+[m[32m      "funding": [[m
+[32m+[m[32m        {[m
+[32m+[m[32m          "type": "GitHub Sponsors",[m
+[32m+[m[32m          "url": "https://github.com/sponsors/unifiedjs"[m
+[32m+[m[32m        },[m
+[32m+[m[32m        {[m
+[32m+[m[32m          "type": "OpenCollective",[m
+[32m+[m[32m          "url": "https://opencollective.com/unified"[m
+[32m+[m[32m        }[m
+[32m+[m[32m      ],[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree": "^1.0.0",[m
+[32m+[m[32m        "devlop": "^1.0.0",[m
+[32m+[m[32m        "micromark-factory-space": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-character": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-events-to-acorn": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-symbol": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-types": "^2.0.0",[m
+[32m+[m[32m        "unist-util-position-from-estree": "^2.0.0",[m
+[32m+[m[32m        "vfile-message": "^4.0.0"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/micromark-factory-space": {[m
+       "version": "2.0.1",[m
+       "resolved": "https://registry.npmjs.org/micromark-factory-space/-/micromark-factory-space-2.0.1.tgz",[m
+[36m@@ -4667,6 +5222,31 @@[m
+       ],[m
+       "license": "MIT"[m
+     },[m
+[32m+[m[32m    "node_modules/micromark-util-events-to-acorn": {[m
+[32m+[m[32m      "version": "2.0.3",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/micromark-util-events-to-acorn/-/micromark-util-events-to-acorn-2.0.3.tgz",[m
+[32m+[m[32m      "integrity": "sha512-jmsiEIiZ1n7X1Rr5k8wVExBQCg5jy4UXVADItHmNk1zkwEVhBuIUKRu3fqv+hs4nxLISi2DQGlqIOGiFxgbfHg==",[m
+[32m+[m[32m      "funding": [[m
+[32m+[m[32m        {[m
+[32m+[m[32m          "type": "GitHub Sponsors",[m
+[32m+[m[32m          "url": "https://github.com/sponsors/unifiedjs"[m
+[32m+[m[32m        },[m
+[32m+[m[32m        {[m
+[32m+[m[32m          "type": "OpenCollective",[m
+[32m+[m[32m          "url": "https://opencollective.com/unified"[m
+[32m+[m[32m        }[m
+[32m+[m[32m      ],[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree": "^1.0.0",[m
+[32m+[m[32m        "@types/unist": "^3.0.0",[m
+[32m+[m[32m        "devlop": "^1.0.0",[m
+[32m+[m[32m        "estree-util-visit": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-symbol": "^2.0.0",[m
+[32m+[m[32m        "micromark-util-types": "^2.0.0",[m
+[32m+[m[32m        "vfile-message": "^4.0.0"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/micromark-util-html-tag-name": {[m
+       "version": "2.0.1",[m
+       "resolved": "https://registry.npmjs.org/micromark-util-html-tag-name/-/micromark-util-html-tag-name-2.0.1.tgz",[m
+[36m@@ -4976,6 +5556,31 @@[m
+       "integrity": "sha512-xg1eHpwYL/D/HEdWw2goFZP6vV0FH7W+PZ5rFkGjdIDLtxq7EkzBUeT3m+lndYCt8wKbmofUu1MUdMCXkCk9ZQ==",[m
+       "license": "MIT"[m
+     },[m
+[32m+[m[32m    "node_modules/parse-entities": {[m
+[32m+[m[32m      "version": "4.0.2",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/parse-entities/-/parse-entities-4.0.2.tgz",[m
+[32m+[m[32m      "integrity": "sha512-GG2AQYWoLgL877gQIKeRPGO1xF9+eG1ujIb5soS5gPvLQ1y2o8FL90w2QWNdf9I361Mpp7726c+lj3U0qK1uGw==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/unist": "^2.0.0",[m
+[32m+[m[32m        "character-entities-legacy": "^3.0.0",[m
+[32m+[m[32m        "character-reference-invalid": "^2.0.0",[m
+[32m+[m[32m        "decode-named-character-reference": "^1.0.0",[m
+[32m+[m[32m        "is-alphanumerical": "^2.0.0",[m
+[32m+[m[32m        "is-decimal": "^2.0.0",[m
+[32m+[m[32m        "is-hexadecimal": "^2.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "github",[m
+[32m+[m[32m        "url": "https://github.com/sponsors/wooorm"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/parse-entities/node_modules/@types/unist": {[m
+[32m+[m[32m      "version": "2.0.11",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/@types/unist/-/unist-2.0.11.tgz",[m
+[32m+[m[32m      "integrity": "sha512-CmBKiL6NNo/OqgmMn95Fk9Whlp2mtvIv+KNpQKN2F4SjvrEesubTRWGYSg+BnWZOnlCaSTU1sMpsBOzgbYhnsA==",[m
+[32m+[m[32m      "license": "MIT"[m
+[32m+[m[32m    },[m
+     "node_modules/parse-latin": {[m
+       "version": "7.0.0",[m
+       "resolved": "https://registry.npmjs.org/parse-latin/-/parse-latin-7.0.0.tgz",[m
+[36m@@ -5139,6 +5744,73 @@[m
+         "url": "https://paulmillr.com/funding/"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/recma-build-jsx": {[m
+[32m+[m[32m      "version": "1.0.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/recma-build-jsx/-/recma-build-jsx-1.0.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-8GtdyqaBcDfva+GUKDr3nev3VpKAhup1+RvkMvUxURHpW7QyIvk9F5wz7Vzo06CEMSilw6uArgRqhpiUcWp8ew==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree": "^1.0.0",[m
+[32m+[m[32m        "estree-util-build-jsx": "^3.0.0",[m
+[32m+[m[32m        "vfile": "^6.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/recma-jsx": {[m
+[32m+[m[32m      "version": "1.0.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/recma-jsx/-/recma-jsx-1.0.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-huSIy7VU2Z5OLv6oFLosQGGDqPqdO1iq6bWNAdhzMxSJP7RAso4fCZ1cKu8j9YHCZf3TPrq4dw3okhrylgcd7w==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "acorn-jsx": "^5.0.0",[m
+[32m+[m[32m        "estree-util-to-js": "^2.0.0",[m
+[32m+[m[32m        "recma-parse": "^1.0.0",[m
+[32m+[m[32m        "recma-stringify": "^1.0.0",[m
+[32m+[m[32m        "unified": "^11.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "peerDependencies": {[m
+[32m+[m[32m        "acorn": "^6.0.0 || ^7.0.0 || ^8.0.0"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/recma-parse": {[m
+[32m+[m[32m      "version": "1.0.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/recma-parse/-/recma-parse-1.0.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-OYLsIGBB5Y5wjnSnQW6t3Xg7q3fQ7FWbw/vcXtORTnyaSFscOtABg+7Pnz6YZ6c27fG1/aN8CjfwoUEUIdwqWQ==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree": "^1.0.0",[m
+[32m+[m[32m        "esast-util-from-js": "^2.0.0",[m
+[32m+[m[32m        "unified": "^11.0.0",[m
+[32m+[m[32m        "vfile": "^6.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/recma-stringify": {[m
+[32m+[m[32m      "version": "1.0.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/recma-stringify/-/recma-stringify-1.0.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-cjwII1MdIIVloKvC9ErQ+OgAtwHBmcZ0Bg4ciz78FtbT8In39aAYbaA7zvxQ61xVMSPE8WxhLwLbhif4Js2C+g==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree": "^1.0.0",[m
+[32m+[m[32m        "estree-util-to-js": "^2.0.0",[m
+[32m+[m[32m        "unified": "^11.0.0",[m
+[32m+[m[32m        "vfile": "^6.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/regex": {[m
+       "version": "6.1.0",[m
+       "resolved": "https://registry.npmjs.org/regex/-/regex-6.1.0.tgz",[m
+[36m@@ -5209,6 +5881,21 @@[m
+         "url": "https://opencollective.com/unified"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/rehype-recma": {[m
+[32m+[m[32m      "version": "1.0.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/rehype-recma/-/rehype-recma-1.0.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-lqA4rGUf1JmacCNWWZx0Wv1dHqMwxzsDWYMTowuplHF3xH0N/MmrZ/G3BDZnzAkRmxDadujCjaKM2hqYdCBOGw==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/estree": "^1.0.0",[m
+[32m+[m[32m        "@types/hast": "^3.0.0",[m
+[32m+[m[32m        "hast-util-to-estree": "^3.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/rehype-stringify": {[m
+       "version": "10.0.1",[m
+       "resolved": "https://registry.npmjs.org/rehype-stringify/-/rehype-stringify-10.0.1.tgz",[m
+[36m@@ -5242,6 +5929,20 @@[m
+         "url": "https://opencollective.com/unified"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/remark-mdx": {[m
+[32m+[m[32m      "version": "3.1.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/remark-mdx/-/remark-mdx-3.1.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-Pjj2IYlUY3+D8x00UJsIOg5BEvfMyeI+2uLPn9VO9Wg4MEtN/VTIq2NEJQfde9PnX15KgtHyl9S0BcTnWrIuWg==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "mdast-util-mdx": "^3.0.0",[m
+[32m+[m[32m        "micromark-extension-mdxjs": "^3.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/remark-parse": {[m
+       "version": "11.0.0",[m
+       "resolved": "https://registry.npmjs.org/remark-parse/-/remark-parse-11.0.0.tgz",[m
+[36m@@ -5526,6 +6227,15 @@[m
+         "url": "https://github.com/sponsors/cyyynthia"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/source-map": {[m
+[32m+[m[32m      "version": "0.7.6",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/source-map/-/source-map-0.7.6.tgz",[m
+[32m+[m[32m      "integrity": "sha512-i5uvt8C3ikiWeNZSVZNWcfZPItFQOsYTUAOkcUPGd8DqDy1uOUikjt5dG+uRlwyvR108Fb9DOd4GvXfT0N2/uQ==",[m
+[32m+[m[32m      "license": "BSD-3-Clause",[m
+[32m+[m[32m      "engines": {[m
+[32m+[m[32m        "node": ">= 12"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/source-map-js": {[m
+       "version": "1.2.1",[m
+       "resolved": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.1.tgz",[m
+[36m@@ -5591,6 +6301,24 @@[m
+         "url": "https://github.com/chalk/strip-ansi?sponsor=1"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/style-to-js": {[m
+[32m+[m[32m      "version": "1.1.21",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/style-to-js/-/style-to-js-1.1.21.tgz",[m
+[32m+[m[32m      "integrity": "sha512-RjQetxJrrUJLQPHbLku6U/ocGtzyjbJMP9lCNK7Ag0CNh690nSH8woqWH9u16nMjYBAok+i7JO1NP2pOy8IsPQ==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "style-to-object": "1.0.14"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/style-to-object": {[m
+[32m+[m[32m      "version": "1.0.14",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/style-to-object/-/style-to-object-1.0.14.tgz",[m
+[32m+[m[32m      "integrity": "sha512-LIN7rULI0jBscWQYaSswptyderlarFkjQ+t79nzty8tcIAceVomEVlLzH5VP4Cmsv6MtKhs7qaAiwlcp+Mgaxw==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "inline-style-parser": "0.2.7"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/svgo": {[m
+       "version": "4.0.1",[m
+       "resolved": "https://registry.npmjs.org/svgo/-/svgo-4.0.1.tgz",[m
+[36m@@ -5843,6 +6571,19 @@[m
+         "url": "https://opencollective.com/unified"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/unist-util-position-from-estree": {[m
+[32m+[m[32m      "version": "2.0.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/unist-util-position-from-estree/-/unist-util-position-from-estree-2.0.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-KaFVRjoqLyF6YXCbVLNad/eS4+OfPQQn2yOd7zF/h5T/CSL2v8NpN6a5TPvtbXthAGw5nG+PuTtq+DdIZr+cRQ==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@types/unist": "^3.0.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "type": "opencollective",[m
+[32m+[m[32m        "url": "https://opencollective.com/unified"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/unist-util-remove-position": {[m
+       "version": "5.0.0",[m
+       "resolved": "https://registry.npmjs.org/unist-util-remove-position/-/unist-util-remove-position-5.0.0.tgz",[m
+[1mdiff --git a/package.json b/package.json[m
+[1mindex c6424e7..8bd05a2 100644[m
+[1m--- a/package.json[m
+[1m+++ b/package.json[m
+[36m@@ -9,6 +9,7 @@[m
+     "astro": "astro"[m
+   },[m
+   "dependencies": {[m
+[32m+[m[32m    "@astrojs/mdx": "^4.3.14",[m
+     "@astrojs/react": "^4.2.0",[m
+     "@fontsource/nunito": "^5.2.7",[m
+     "astro": "^5.7.0",[m
+[1mdiff --git a/src/assets/README.md b/src/assets/README.md[m
+[1mindex 06261f3..db5201b 100644[m
+[1m--- a/src/assets/README.md[m
+[1m+++ b/src/assets/README.md[m
+[36m@@ -19,6 +19,50 @@[m [mReplace any file below to update the site — no code changes needed. Keep the s[m
+ | Article cover 1 | `covers/cover-01.jpg` | 8∶5 | 1600 × 1000 |[m
+ | Article cover 2 | `covers/cover-02.jpg` | 8∶5 | 1600 × 1000 |[m
+ | Article cover 3 | `covers/cover-03.jpg` | 8∶5 | 1600 × 1000 |[m
+[32m+[m[32m| Thoughts page ambient bg | `thoughts-bg.jpg` | 16∶9 | 1920 × 1080 |[m
+[32m+[m
+[32m+[m[32m**Thoughts background:** use a soft, low-contrast cozy photo (warm light, not busy). It shows behind the pinboard panel on `/thoughts` with a cream overlay — replace `thoughts-bg.jpg` to change the mood.[m
+[32m+[m
+[32m+[m[32m## Article body images (`posts/`)[m
+[32m+[m
+[32m+[m[32mUse **`src/assets/posts/`** for images inside article body content (not cover thumbnails).[m
+[32m+[m
+[32m+[m[32m| Usage | Where to put the file | How to reference |[m
+[32m+[m[32m|-------|----------------------|------------------|[m
+[32m+[m[32m| **MDX** (optimized) | `src/assets/posts/your-photo.jpg` | `import pic from "../../assets/posts/your-photo.jpg"` then `<Figure src={pic} alt="..." caption="..." />` |[m
+[32m+[m[32m| **Plain `.md`** | `src/assets/posts/your-photo.jpg` | `![alt text](../../assets/posts/your-photo.jpg)` — path is relative to the markdown file in `src/content/blog/` |[m
+[32m+[m
+[32m+[m[32m### Recommended approach (MDX)[m
+[32m+[m
+[32m+[m[32m```mdx[m
+[32m+[m[32mimport Figure from "../../components/mdx/Figure.astro";[m
+[32m+[m[32mimport myPic from "../../assets/posts/my-pic.jpg";[m
+[32m+[m
+[32m+[m[32m<Figure src={myPic} alt="描述" caption="可选说明文字" />[m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32m`Figure` wraps Astro's optimized `<Image />` with rounded corners, centered layout, subtle shadow, and an optional caption.[m
+[32m+[m
+[32m+[m[32mFor direct control without a caption:[m
+[32m+[m
+[32m+[m[32m```mdx[m
+[32m+[m[32mimport { Image } from "astro:assets";[m
+[32m+[m[32mimport myPic from "../../assets/posts/my-pic.jpg";[m
+[32m+[m
+[32m+[m[32m<Image src={myPic} alt="描述" />[m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32mBoth render with the same in-body image styling inside the reading column.[m
+[32m+[m
+[32m+[m[32m### Plain Markdown[m
+[32m+[m
+[32m+[m[32mKeep images in `src/assets/posts/`. From any file in `src/content/blog/`:[m
+[32m+[m
+[32m+[m[32m```md[m
+[32m+[m[32m![alt text](../../assets/posts/your-photo.jpg)[m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32mNo imports needed — prose styles handle rounded corners, centering, and shadow automatically.[m
+ [m
+ ## Blog cover mapping[m
+ [m
+[36m@@ -35,4 +79,6 @@[m [mnode scripts/generate-hero-images.mjs[m
+ node scripts/generate-avatar.mjs[m
+ node scripts/generate-gallery-images.mjs[m
+ node scripts/generate-cover-images.mjs[m
+[32m+[m[32mnode scripts/generate-post-images.mjs[m
+[32m+[m[32mnode scripts/generate-thoughts-bg.mjs[m
+ ```[m
+[1mdiff --git a/src/components/ArticleCompactList.astro b/src/components/ArticleCompactList.astro[m
+[1mindex 7d01dab..8468592 100644[m
+[1m--- a/src/components/ArticleCompactList.astro[m
+[1m+++ b/src/components/ArticleCompactList.astro[m
+[36m@@ -1,18 +1,9 @@[m
+ ---[m
+ import { getCollection } from "astro:content";[m
+[31m-import type { ImageMetadata } from "astro";[m
+ import SectionHeader from "./SectionHeader.astro";[m
+ import CategoryPill from "./CategoryPill.astro";[m
+[31m-import { formatDate, getReadingMinutes } from "../utils/content";[m
+[31m-import cover01 from "../assets/covers/cover-01.jpg";[m
+[31m-import cover02 from "../assets/covers/cover-02.jpg";[m
+[31m-import cover03 from "../assets/covers/cover-03.jpg";[m
+[31m-[m
+[31m-const coverMap: Record<string, ImageMetadata> = {[m
+[31m-  "cover-01": cover01,[m
+[31m-  "cover-02": cover02,[m
+[31m-  "cover-03": cover03,[m
+[31m-};[m
+[32m+[m[32mimport { formatDate } from "../utils/content";[m
+[32m+[m[32mimport { getBlogCover } from "../utils/covers";[m
+ [m
+ const articles = (await getCollection("blog"))[m
+   .filter((entry) => !entry.data.draft)[m
+[36m@@ -31,15 +22,13 @@[m [mconst articles = (await getCollection("blog"))[m
+   <div class="articles-compact__list">[m
+     {[m
+       articles.map((article) => {[m
+[31m-        const coverKey = article.data.cover ?? "";[m
+[31m-        const cover = coverMap[coverKey];[m
+[31m-        const readingMinutes = getReadingMinutes(article.body ?? "");[m
+[32m+[m[32m        const cover = getBlogCover(article.data.cover);[m
+ [m
+         return ([m
+           <article class="articles-compact__item" data-reveal="content" data-reveal-delay="80">[m
+             {cover && ([m
+               <a[m
+[31m-                href={`/blog/${article.id}`}[m
+[32m+[m[32m                href={`/blog/${article.id}/`}[m
+                 class="articles-compact__thumb"[m
+                 aria-label={`阅读：${article.data.title}`}[m
+               >[m
+[36m@@ -56,16 +45,14 @@[m [mconst articles = (await getCollection("blog"))[m
+             <div class="articles-compact__body">[m
+               <CategoryPill category={article.data.category} />[m
+               <h3 class="articles-compact__title">[m
+[31m-                <a href={`/blog/${article.id}`}>{article.data.title}</a>[m
+[32m+[m[32m                <a href={`/blog/${article.id}/`}>{article.data.title}</a>[m
+               </h3>[m
+               <p class="articles-compact__desc">{article.data.description}</p>[m
+               <div class="articles-compact__meta">[m
+                 <time datetime={article.data.pubDate.toISOString()}>[m
+                   {formatDate(article.data.pubDate)}[m
+                 </time>[m
+[31m-                <span aria-hidden="true">·</span>[m
+[31m-                <span>约 {readingMinutes} 分钟</span>[m
+[31m-                <a href={`/blog/${article.id}`} class="articles-compact__read">[m
+[32m+[m[32m                <a href={`/blog/${article.id}/`} class="articles-compact__read">[m
+                   继续阅读 →[m
+                 </a>[m
+               </div>[m
+[1mdiff --git a/src/components/LatestArticles.astro b/src/components/LatestArticles.astro[m
+[1mindex 3a7613d..ea9ec6c 100644[m
+[1m--- a/src/components/LatestArticles.astro[m
+[1m+++ b/src/components/LatestArticles.astro[m
+[36m@@ -1,17 +1,8 @@[m
+ ---[m
+ import { getCollection } from "astro:content";[m
+[31m-import type { ImageMetadata } from "astro";[m
+ import SectionTitle from "./SectionTitle.astro";[m
+[31m-import { formatDate, getReadingMinutes } from "../utils/content";[m
+[31m-import cover01 from "../assets/covers/cover-01.jpg";[m
+[31m-import cover02 from "../assets/covers/cover-02.jpg";[m
+[31m-import cover03 from "../assets/covers/cover-03.jpg";[m
+[31m-[m
+[31m-const coverMap: Record<string, ImageMetadata> = {[m
+[31m-  "cover-01": cover01,[m
+[31m-  "cover-02": cover02,[m
+[31m-  "cover-03": cover03,[m
+[31m-};[m
+[32m+[m[32mimport { formatDate } from "../utils/content";[m
+[32m+[m[32mimport { getBlogCover } from "../utils/covers";[m
+ [m
+ const articles = (await getCollection("blog"))[m
+   .filter((entry) => !entry.data.draft)[m
+[36m@@ -26,9 +17,7 @@[m [mconst articles = (await getCollection("blog"))[m
+     <div class="articles-list">[m
+       {[m
+         articles.map((article, index) => {[m
+[31m-          const coverKey = article.data.cover ?? "";[m
+[31m-          const cover = coverMap[coverKey];[m
+[31m-          const readingMinutes = getReadingMinutes(article.body ?? "");[m
+[32m+[m[32m          const cover = getBlogCover(article.data.cover);[m
+           const reversed = index % 2 === 1;[m
+ [m
+           return ([m
+[36m@@ -39,7 +28,7 @@[m [mconst articles = (await getCollection("blog"))[m
+             >[m
+               {cover && ([m
+                 <a[m
+[31m-                  href={`/blog/${article.id}`}[m
+[32m+[m[32m                  href={`/blog/${article.id}/`}[m
+                   class="article-row__media"[m
+                   data-reveal="image"[m
+                   aria-label={`阅读：${article.data.title}`}[m
+[36m@@ -58,17 +47,15 @@[m [mconst articles = (await getCollection("blog"))[m
+               <div class="article-row__body" data-reveal="content" data-reveal-delay="120">[m
+                 <span class="article-row__tag">{article.data.category}</span>[m
+                 <h3 class="article-row__title">[m
+[31m-                  <a href={`/blog/${article.id}`}>{article.data.title}</a>[m
+[32m+[m[32m                  <a href={`/blog/${article.id}/`}>{article.data.title}</a>[m
+                 </h3>[m
+                 <p class="article-row__desc">{article.data.description}</p>[m
+                 <div class="article-row__meta">[m
+                   <time datetime={article.data.pubDate.toISOString()}>[m
+                     {formatDate(article.data.pubDate)}[m
+                   </time>[m
+[31m-                  <span class="article-row__dot" aria-hidden="true">·</span>[m
+[31m-                  <span>约 {readingMinutes} 分钟</span>[m
+                 </div>[m
+[31m-                <a href={`/blog/${article.id}`} class="article-row__read">[m
+[32m+[m[32m                <a href={`/blog/${article.id}/`} class="article-row__read">[m
+                   阅读全文 →[m
+                 </a>[m
+               </div>[m
+[1mdiff --git a/src/content.config.ts b/src/content.config.ts[m
+[1mindex 6d608f1..0e10efb 100644[m
+[1m--- a/src/content.config.ts[m
+[1m+++ b/src/content.config.ts[m
+[36m@@ -10,6 +10,7 @@[m [mconst blog = defineCollection({[m
+     category: z.enum(["日常", "学习日记"]),[m
+     cover: z.string().optional(),[m
+     draft: z.boolean().default(false),[m
+[32m+[m[32m    pinned: z.boolean().optional().default(false),[m
+   }),[m
+ });[m
+ [m
+[1mdiff --git a/src/content/blog/taipei-coffee-shops.md b/src/content/blog/taipei-coffee-shops.md[m
+[1mdeleted file mode 100644[m
+[1mindex c511f58..0000000[m
+[1m--- a/src/content/blog/taipei-coffee-shops.md[m
+[1m+++ /dev/null[m
+[36m@@ -1,16 +0,0 @@[m
+[31m----[m
+[31m-title: 台北五家我最爱的咖啡店[m
+[31m-description: 不是为了打卡，是真的会想一个人坐一个下午的角落。这五家，是我心里的小地图。[m
+[31m-pubDate: 2026-07-02[m
+[31m-category: 日常[m
+[31m-cover: cover-02[m
+[31m-draft: false[m
+[31m----[m
+[31m-[m
+[31m-我不是咖啡专家，只是喜欢在窗边看路人发呆的人。台北的咖啡店很多，但真正让我想反复去的，往往是因为某个角落刚好能晒到太阳。[m
+[31m-[m
+[31m-第一家在永康街附近，木桌有点旧旧的，拿铁不酸，适合带一本不用动脑的小说。第二家在赤峰街，空间小小的，但安静到能听见自己的呼吸。第三家靠近台大，学生很多，反而有一种年轻的热闹，写不出东西时会去那里换心情。[m
+[31m-[m
+[31m-还有两家在捷运沿线，一家偏日式，一家偏复古。我不一定会点同样的饮料，但都会选靠窗的位置。咖啡只是借口，真正需要的是让自己慢下来。[m
+[31m-[m
+[31m-如果你也在台北，希望你也找到一间「今天就想进去坐坐」的小店 ☕[m
+[1mdiff --git a/src/utils/content.ts b/src/utils/content.ts[m
+[1mindex 8f2002c..8280d64 100644[m
+[1m--- a/src/utils/content.ts[m
+[1m+++ b/src/utils/content.ts[m
+[36m@@ -1,8 +1,3 @@[m
+[31m-export function getReadingMinutes(body: string): number {[m
+[31m-  const chars = body.replace(/\s+/g, "").length;[m
+[31m-  return Math.max(1, Math.ceil(chars / 400));[m
+[31m-}[m
+[31m-[m
+ export function formatDate(date: Date): string {[m
+   return date.toLocaleDateString("zh-TW", {[m
+     year: "numeric",[m
+[36m@@ -18,6 +13,53 @@[m [mexport function formatShortDate(date: Date): string {[m
+   });[m
+ }[m
+ [m
+[32m+[m[32mexport function formatMonthGroup(date: Date): string {[m
+[32m+[m[32m  return date.toLocaleDateString("zh-TW", {[m
+[32m+[m[32m    year: "numeric",[m
+[32m+[m[32m    month: "long",[m
+[32m+[m[32m  });[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mexport function formatMonthAnchorId(date: Date): string {[m
+[32m+[m[32m  const year = date.getFullYear();[m
+[32m+[m[32m  const month = String(date.getMonth() + 1).padStart(2, "0");[m
+[32m+[m[32m  return `month-${year}-${month}`;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mexport function formatMonthAnchorLabel(date: Date): string {[m
+[32m+[m[32m  const month = date.getMonth() + 1;[m
+[32m+[m[32m  if (month === 1) {[m
+[32m+[m[32m    return `${date.getFullYear()}年1月`;[m
+[32m+[m[32m  }[m
+[32m+[m[32m  return `${month}月`;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mconst weatherEmojiMap: Record<string, string> = {[m
+[32m+[m[32m  晴: "☀️",[m
+[32m+[m[32m  雨: "🌧️",[m
+[32m+[m[32m  多云: "⛅",[m
+[32m+[m[32m  阴: "☁️",[m
+[32m+[m[32m  雪: "❄️",[m
+[32m+[m[32m};[m
+[32m+[m
+[32m+[m[32mexport function getWeatherEmoji(weather?: string): string | undefined {[m
+[32m+[m[32m  if (!weather) return undefined;[m
+[32m+[m[32m  if (/[\p{Extended_Pictographic}]/u.test(weather)) return weather;[m
+[32m+[m[32m  return weatherEmojiMap[weather] ?? weather;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mexport function formatThoughtMeta([m
+[32m+[m[32m  date: Date,[m
+[32m+[m[32m  mood?: string,[m
+[32m+[m[32m  weather?: string,[m
+[32m+[m[32m): string {[m
+[32m+[m[32m  const parts = [formatShortDate(date)];[m
+[32m+[m[32m  const emoji = getWeatherEmoji(weather);[m
+[32m+[m[32m  if (emoji) parts.push(emoji);[m
+[32m+[m[32m  if (mood) parts.push(mood);[m
+[32m+[m[32m  return parts.join(" ");[m
+[32m+[m[32m}[m
+[32m+[m
+ export type BlogCategory = "日常" | "学习日记";[m
+ [m
+ export function getCategoryTint(category: BlogCategory | string): string {[m
+[36m@@ -30,3 +72,16 @@[m [mexport function getCategoryTint(category: BlogCategory | string): string {[m
+       return "cat-work";[m
+   }[m
+ }[m
+[32m+[m
+[32m+[m[32mexport type BlogEntry = Awaited<[m
+[32m+[m[32m  ReturnType<typeof import("astro:content").getCollection<"blog">>[m
+[32m+[m[32m>[number];[m
+[32m+[m
+[32m+[m[32mexport function sortBlogPosts(posts: BlogEntry[]): BlogEntry[] {[m
+[32m+[m[32m  return [...posts].sort((a, b) => {[m
+[32m+[m[32m    const pinA = a.data.pinned ? 1 : 0;[m
+[32m+[m[32m    const pinB = b.data.pinned ? 1 : 0;[m
+[32m+[m[32m    if (pinA !== pinB) return pinB - pinA;[m
+[32m+[m[32m    return b.data.pubDate.valueOf() - a.data.pubDate.valueOf();[m
+[32m+[m[32m  });[m
+[32m+[m[32m}[m

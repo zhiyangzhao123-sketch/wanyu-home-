@@ -16,6 +16,15 @@ Replace any file below to update the site — no code changes needed. Keep the s
 | Gallery thumb 4 | `gallery/g-04.jpg` | 1∶1 | 800 × 800 |
 | Gallery thumb 5 | `gallery/g-05.jpg` | 1∶1 | 800 × 800 |
 | Gallery thumb 6 | `gallery/g-06.jpg` | 1∶1 | 800 × 800 |
+| Album assets | `gallery/[album-slug]/` | mixed | see album folders |
+
+**Gallery albums:** each album lives at `src/content/gallery/[album-slug]/index.md` with images in `src/assets/gallery/[album-slug]/`. Regenerate shared thumbs plus album folders:
+
+```bash
+node scripts/generate-gallery-images.mjs
+node scripts/generate-gallery-albums.mjs
+```
+
 | Article cover 1 | `covers/cover-01.jpg` | 8∶5 | 1600 × 1000 |
 | Article cover 2 | `covers/cover-02.jpg` | 8∶5 | 1600 × 1000 |
 | Article cover 3 | `covers/cover-03.jpg` | 8∶5 | 1600 × 1000 |
@@ -34,5 +43,6 @@ In blog frontmatter, set `cover` to the slot name (without extension):
 node scripts/generate-hero-images.mjs
 node scripts/generate-avatar.mjs
 node scripts/generate-gallery-images.mjs
+node scripts/generate-gallery-albums.mjs
 node scripts/generate-cover-images.mjs
 ```

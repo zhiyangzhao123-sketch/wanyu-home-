@@ -1,0 +1,38 @@
+---
+interface Props {
+  bvid: string;
+}
+
+const { bvid } = Astro.props;
+---
+
+<div class="bili-video">
+  <iframe
+    src={`//player.bilibili.com/player.html?bvid=${bvid}&autoplay=0`}
+    loading="lazy"
+    scrolling="no"
+    frameborder="0"
+    allowfullscreen
+  ></iframe>
+</div>
+
+<style>
+  .bili-video {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    margin: 1.75rem 0;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+    background-color: var(--color-surface-alt);
+  }
+
+  .bili-video iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+</style>

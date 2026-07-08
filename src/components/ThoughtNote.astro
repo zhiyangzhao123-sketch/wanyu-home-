@@ -1,0 +1,86 @@
+---
+import { formatThoughtMeta } from "../utils/content";
+
+interface Props {
+  content: string;
+  pubDate: Date;
+  mood?: string;
+  weather?: string;
+  index: number;
+  class?: string;
+}
+
+const { content, pubDate, mood, weather, index, class: className } = Astro.props;
+
+const NOTE_COLORS = ["#FFFAEF", "#FDF6DC", "#FBEAE6", "#EFF5E8"];
+const bg = NOTE_COLORS[index % NOTE_COLORS.length];
+const rotate = (((index * 53) % 71) / 70) * 7 - 3.5;
+const meta = formatThoughtMeta(pubDate, mood, weather);
+---
+
+<li
+  class:list={["thought-note", className]}
+  style={{ "--note-bg": bg, "--note-rotate": `${rotate.toFixed(2)}deg` }}
+  data-reveal="content"
+  data-reveal-delay={`${(index % 6) * 50}`}
+>
+  <span class="thought-note__tape" aria-hidden="true"></span>
+  <p class="thought-note__body">{content}</p>
+  <footer class="thought-note__meta">{meta}</footer>
+</li>
+
+<style>
+  .thought-note {
+    position: relative;
+    margin: 0 0 1.5rem;
+    break-inside: avoid;
+    background-color: var(--note-bg);
+    border-radius: 5px;
+    padding: 1.6rem 1.15rem 1.1rem;
+    box-shadow:
+      0 2px 6px rgb(91 81 72 / 8%),
+      0 1px 2px rgb(91 81 72 / 6%);
+    transform: rotate(var(--note-rotate));
+    transition:
+      transform 0.35s ease,
+      box-shadow 0.35s ease,
+      translate 0.35s ease;
+  }
+
+  .thought-note:hover {
+    rotate: 0deg;
+    translate: 0 -4px;
+    box-shadow:
+      0 8px 20px rgb(91 81 72 / 12%),
+      0 2px 6px rgb(91 81 72 / 8%);
+  }
+
+  .thought-note__tape {
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    width: 52px;
+    height: 16px;
+    transform: translateX(-50%) rotate(-3deg);
+    background: rgb(243 230 200 / 58%);
+    border: 1px solid rgb(210 190 160 / 22%);
+    box-shadow: 0 1px 2px rgb(91 81 72 / 8%);
+  }
+
+  .thought-note__body {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 17px;
+    line-height: 1.85;
+    color: var(--color-text-primary);
+    white-space: pre-line;
+  }
+
+  .thought-note__meta {
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgb(91 81 72 / 8%);
+    font-size: 0.82rem;
+    color: var(--color-text-secondary);
+  }
+</style>

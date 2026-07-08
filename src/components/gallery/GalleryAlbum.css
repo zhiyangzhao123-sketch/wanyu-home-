@@ -1,0 +1,280 @@
+.gallery-album__empty {
+  margin: 2rem 0 0;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
+}
+
+.gallery-album__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.gallery-album__item {
+  margin: 0;
+}
+
+.gallery-album__photo-btn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  transition: transform 0.3s ease;
+}
+
+.gallery-album__photo-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Polaroid frame — same treatment (grain, film filter, corner asymmetry,
+   layered warm shadow) as AlbumCard.astro's cover-wall cards, scaled up
+   for full-width detail-page photos. */
+.gallery-album__polaroid {
+  display: block;
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
+  background: linear-gradient(150deg, #fffdf8 0%, #fffdf8 45%, #f4ede1 100%);
+  padding: 1.15rem 1.15rem 0;
+  border-radius: 3px 2px 4px 2px;
+  box-shadow:
+    0 1px 2px rgb(91 81 72 / 20%),
+    0 14px 32px -8px rgb(91 81 72 / 18%);
+  transition: box-shadow 0.3s ease;
+}
+
+.gallery-album__photo-btn:hover .gallery-album__polaroid {
+  box-shadow:
+    0 2px 4px rgb(91 81 72 / 24%),
+    0 22px 44px -10px rgb(91 81 72 / 24%);
+}
+
+/* Subtle cardstock grain — identical shared rule to AlbumCard.astro. */
+.gallery-album__polaroid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+}
+
+.gallery-album__photo-frame {
+  display: block;
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+  background-color: var(--color-surface-alt);
+  border-radius: 2px;
+}
+
+/* Faint warm tint mimicking aged film emulsion, layered on top of the image. */
+.gallery-album__photo-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  background: linear-gradient(
+    140deg,
+    rgb(231 185 138 / 16%),
+    rgb(235 201 196 / 10%)
+  );
+}
+
+.gallery-album__photo {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: saturate(0.9) contrast(0.95) brightness(1.02);
+}
+
+.gallery-album__strip {
+  display: block;
+  position: relative;
+  z-index: 2;
+  padding: 1.3rem 0.9rem 1.65rem;
+  text-align: center;
+}
+
+.gallery-album__caption {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 1.02rem;
+  line-height: 1.75;
+  color: var(--color-text-primary);
+}
+
+.gallery-album__date {
+  display: block;
+  margin-top: 0.4rem;
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}
+
+.gallery-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgb(91 81 72 / 58%);
+  backdrop-filter: blur(4px);
+  animation: gallery-lightbox-fade-in 0.25s ease;
+}
+
+.gallery-lightbox__panel {
+  position: relative;
+  width: min(100%, 980px);
+  max-height: calc(100vh - 2.5rem);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gallery-lightbox__figure {
+  margin: 0;
+  max-height: calc(100vh - 6rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: gallery-lightbox-scale-in 0.28s ease;
+}
+
+.gallery-lightbox__image {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100vh - 9rem);
+  width: auto;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 12px 36px rgb(40 30 20 / 22%);
+  background-color: var(--color-surface);
+}
+
+.gallery-lightbox__caption {
+  margin-top: 0.85rem;
+  max-width: 36rem;
+  text-align: center;
+  color: #fffdf8;
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.gallery-lightbox__date {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  color: rgb(255 253 248 / 78%);
+}
+
+.gallery-lightbox__close,
+.gallery-lightbox__nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  background: rgb(255 253 248 / 92%);
+  box-shadow: var(--shadow-card);
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.gallery-lightbox__close:hover,
+.gallery-lightbox__nav:hover {
+  transform: translateY(-1px);
+  background: #fffdf8;
+}
+
+.gallery-lightbox__close {
+  position: absolute;
+  top: -0.25rem;
+  right: 0;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  z-index: 2;
+}
+
+.gallery-lightbox__nav {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .gallery-lightbox__panel {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 0.75rem;
+  }
+
+  .gallery-lightbox__nav {
+    display: none;
+  }
+
+  .gallery-lightbox__close {
+    top: 0;
+    right: 0.25rem;
+  }
+}
+
+@keyframes gallery-lightbox-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes gallery-lightbox-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-album__photo-btn,
+  .gallery-album__polaroid,
+  .gallery-lightbox__close,
+  .gallery-lightbox__nav {
+    transition: none;
+  }
+
+  .gallery-lightbox,
+  .gallery-lightbox__figure {
+    animation: none;
+  }
+}

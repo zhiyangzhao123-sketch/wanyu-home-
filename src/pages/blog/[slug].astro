@@ -1,0 +1,325 @@
+---
+import { getCollection, render, type CollectionEntry } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import CategoryPill from "../../components/CategoryPill.astro";
+import { formatDate } from "../../utils/content";
+import { getBlogCover } from "../../utils/covers";
+
+export async function getStaticPaths() {
+  const posts = (await getCollection("blog")).filter((entry) => !entry.data.draft);
+  const sorted = [...posts].sort(
+    (a, b) => a.data.pubDate.valueOf() - b.data.pubDate.valueOf(),
+  );
+
+  return sorted.map((post, index) => ({
+    params: { slug: post.id },
+    props: {
+      post,
+      prevPost: sorted[index - 1] ?? null,
+      nextPost: sorted[index + 1] ?? null,
+    },
+  }));
+}
+
+interface Props {
+  post: CollectionEntry<"blog">;
+  prevPost: CollectionEntry<"blog"> | null;
+  nextPost: CollectionEntry<"blog"> | null;
+}
+
+const { post, prevPost, nextPost } = Astro.props;
+const { Content } = await render(post);
+const cover = getBlogCover(post.data.cover);
+---
+
+<BaseLayout title={`${post.data.title} | 宛瑜的小窝`} description={post.data.description}>
+  <article class="blog-article container-content">
+    {
+      cover && (
+        <div class="blog-article__cover" data-reveal="image">
+          <img
+            src={cover.src}
+            alt=""
+            width={cover.width}
+            height={cover.height}
+            loading="eager"
+            decoding="async"
+          />
+        </div>
+      )
+    }
+
+    <header class="blog-article__header" data-reveal="content">
+      <CategoryPill category={post.data.category} />
+      <h1 class="blog-article__title">{post.data.title}</h1>
+      <p class="blog-article__meta">
+        <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
+      </p>
+    </header>
+
+    <div class="blog-article__body container-reading" data-reveal="content" data-reveal-delay="80">
+      <Content />
+    </div>
+
+    {
+      (prevPost || nextPost) && (
+        <div class="blog-article__nav container-reading">
+          <hr class="blog-article__divider" />
+          <div class="blog-article__pager">
+            {prevPost && (
+              <a href={`/blog/${prevPost.id}/`} class="blog-pager-card blog-pager-card--prev">
+                <span class="blog-pager-card__label">← 上一篇</span>
+                <span class="blog-pager-card__title">{prevPost.data.title}</span>
+              </a>
+            )}
+            {nextPost && (
+              <a href={`/blog/${nextPost.id}/`} class="blog-pager-card blog-pager-card--next">
+                <span class="blog-pager-card__label">下一篇 →</span>
+                <span class="blog-pager-card__title">{nextPost.data.title}</span>
+              </a>
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    <p class="blog-article__back container-reading">
+      <a href="/blog/">回到全部文章 →</a>
+    </p>
+  </article>
+</BaseLayout>
+
+<style>
+  .blog-article {
+    padding-block: calc(4rem + 2rem) 4.5rem;
+  }
+
+  .blog-article__cover {
+    max-width: 1000px;
+    margin: 0 auto 2.5rem;
+    overflow: hidden;
+    border-radius: 20px;
+    aspect-ratio: 16 / 10;
+    box-shadow: var(--shadow-card);
+  }
+
+  .blog-article__cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .blog-article__header {
+    max-width: var(--width-reading);
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .blog-article__title {
+    margin: 0.85rem 0 0;
+    font-family: var(--font-heading);
+    font-size: 34px;
+    line-height: 1.4;
+    color: var(--color-text-primary);
+  }
+
+  @media (max-width: 640px) {
+    .blog-article__title {
+      font-size: 26px;
+    }
+  }
+
+  .blog-article__meta {
+    margin: 0.75rem 0 0;
+    color: var(--color-text-secondary);
+    font-size: 0.88rem;
+  }
+
+  .blog-article__body {
+    margin-top: 2.75rem;
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--color-text-primary);
+  }
+
+  .blog-article__body :global(p) {
+    margin: 1.35rem 0;
+  }
+
+  .blog-article__body :global(h2) {
+    margin: 2.75rem 0 1.1rem;
+    font-family: var(--font-heading);
+    font-size: 26px;
+    line-height: 1.45;
+    color: var(--color-text-primary);
+  }
+
+  .blog-article__body :global(h3) {
+    margin: 2.25rem 0 1rem;
+    font-family: var(--font-heading);
+    font-size: 21px;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+  }
+
+  .blog-article__body :global(blockquote) {
+    margin: 1.75rem 0;
+    padding: 0.85rem 1.25rem;
+    border-left: 4px solid var(--color-brand);
+    border-radius: 0 12px 12px 0;
+    background-color: rgb(231 185 138 / 10%);
+    color: var(--color-text-secondary);
+  }
+
+  .blog-article__body :global(blockquote p) {
+    margin: 0;
+  }
+
+  .blog-article__body :global(img) {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 1.75rem auto;
+    border-radius: 16px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .blog-article__body :global(a) {
+    color: var(--color-brand);
+    text-decoration: underline;
+    text-decoration-color: rgb(231 185 138 / 45%);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition: text-decoration-color 0.25s ease;
+  }
+
+  .blog-article__body :global(a:hover) {
+    text-decoration-color: var(--color-brand);
+  }
+
+  .blog-article__body :global(code) {
+    padding: 0.15rem 0.4rem;
+    border-radius: 6px;
+    background-color: var(--color-surface-alt);
+    color: var(--color-text-primary);
+    font-size: 0.9em;
+  }
+
+  .blog-article__body :global(pre) {
+    margin: 1.75rem 0;
+    padding: 1.1rem 1.25rem;
+    border-radius: 12px;
+    background-color: var(--color-surface-alt);
+    overflow-x: auto;
+  }
+
+  .blog-article__body :global(pre code) {
+    padding: 0;
+    background: none;
+  }
+
+  .blog-article__body :global(hr) {
+    margin: 2.5rem 0;
+    border: none;
+    border-top: 1px solid var(--color-divider);
+  }
+
+  .blog-article__body :global(ul),
+  .blog-article__body :global(ol) {
+    margin: 1.35rem 0;
+    padding-left: 1.5rem;
+  }
+
+  .blog-article__body :global(li) {
+    margin: 0.5rem 0;
+  }
+
+  .blog-article__nav {
+    margin-top: 3.5rem;
+  }
+
+  .blog-article__divider {
+    margin: 0 0 2.25rem;
+    border: none;
+    border-top: 1px solid var(--color-divider);
+  }
+
+  .blog-article__pager {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .blog-pager-card {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 1.1rem 1.25rem;
+    border-radius: var(--radius-card);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-card);
+    text-decoration: none;
+    transition:
+      transform 0.3s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .blog-pager-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .blog-pager-card--next {
+    text-align: right;
+    align-items: flex-end;
+  }
+
+  .blog-pager-card__label {
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+  }
+
+  .blog-pager-card__title {
+    font-family: var(--font-heading);
+    font-size: 0.98rem;
+    color: var(--color-text-primary);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  @media (max-width: 640px) {
+    .blog-article__pager {
+      flex-direction: column;
+    }
+
+    .blog-pager-card--next {
+      text-align: left;
+      align-items: flex-start;
+    }
+  }
+
+  .blog-article__back {
+    margin: 2rem auto 0;
+    text-align: center;
+  }
+
+  .blog-article__back a {
+    color: var(--color-text-secondary);
+    font-size: 0.92rem;
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+
+  .blog-article__back a:hover {
+    color: var(--color-brand);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .blog-pager-card {
+      transition: none;
+    }
+  }
+</style>

@@ -39,7 +39,7 @@ const articles = (await getCollection("blog"))
             >
               {cover && (
                 <a
-                  href={`/blog/${article.id}`}
+                  href={`/blog/${article.id}/`}
                   class="article-row__media"
                   data-reveal="image"
                   aria-label={`阅读：${article.data.title}`}
@@ -58,7 +58,7 @@ const articles = (await getCollection("blog"))
               <div class="article-row__body" data-reveal="content" data-reveal-delay="120">
                 <span class="article-row__tag">{article.data.category}</span>
                 <h3 class="article-row__title">
-                  <a href={`/blog/${article.id}`}>{article.data.title}</a>
+                  <a href={`/blog/${article.id}/`}>{article.data.title}</a>
                 </h3>
                 <p class="article-row__desc">{article.data.description}</p>
                 <div class="article-row__meta">
@@ -68,7 +68,7 @@ const articles = (await getCollection("blog"))
                   <span class="article-row__dot" aria-hidden="true">·</span>
                   <span>约 {readingMinutes} 分钟</span>
                 </div>
-                <a href={`/blog/${article.id}`} class="article-row__read">
+                <a href={`/blog/${article.id}/`} class="article-row__read">
                   阅读全文 →
                 </a>
               </div>

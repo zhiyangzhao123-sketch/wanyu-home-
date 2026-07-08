@@ -1,0 +1,216 @@
+---
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+import type { HTMLAttributes } from "astro/types";
+
+type Props = {
+  title: string;
+  cover: ImageMetadata;
+  dateLabel: string;
+  photoCount: number;
+  href: string;
+} & HTMLAttributes<"a">;
+
+const { title, cover, dateLabel, photoCount, href, class: className, ...rest } =
+  Astro.props;
+---
+
+<a href={href} class:list={["album-card", className]} {...rest}>
+  <div class="album-card__polaroid">
+    <div class="album-card__photo">
+      <Image
+        src={cover}
+        alt=""
+        width={640}
+        height={640}
+        loading="lazy"
+        decoding="async"
+        class="album-card__image"
+      />
+    </div>
+    <div class="album-card__strip">
+      <h3 class="album-card__title">{title}</h3>
+      <p class="album-card__meta">
+        <span>{photoCount} 張</span>
+        <span class="album-card__dot" aria-hidden="true">·</span>
+        <span>{dateLabel}</span>
+      </p>
+    </div>
+  </div>
+</a>
+
+<style>
+  /* Stack container: the visible top Polaroid card plus two plain
+     aged-paper pseudo-layers (::before = back-most, ::after = middle)
+     peeking out behind it, to read as "a stack of photos". The padding
+     below reserves room for those layers so they stay inside this card's
+     own box and never spill into neighbouring grid cells. */
+  .album-card {
+    position: relative;
+    display: block;
+    padding: 0.3rem 1.05rem 1.1rem;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  /* Back-most stack layer — most offset, lightest shadow. */
+  .album-card::before {
+    content: "";
+    position: absolute;
+    inset: 0.3rem 1.05rem 1.1rem;
+    z-index: 0;
+    border-radius: 3px 2px 4px 2px;
+    background: linear-gradient(150deg, #fffdf8 0%, #fffdf8 45%, #f4ede1 100%);
+    box-shadow:
+      0 1px 1px rgb(91 81 72 / 8%),
+      0 5px 12px -4px rgb(91 81 72 / 7%);
+    transform: rotate(-2deg) translate(9px, 10px);
+    transition: transform 0.35s ease;
+  }
+
+  /* Middle stack layer — smaller offset, medium shadow. */
+  .album-card::after {
+    content: "";
+    position: absolute;
+    inset: 0.3rem 1.05rem 1.1rem;
+    z-index: 1;
+    border-radius: 3px 2px 4px 2px;
+    background: linear-gradient(150deg, #fffdf8 0%, #fffdf8 45%, #f4ede1 100%);
+    box-shadow:
+      0 1px 2px rgb(91 81 72 / 12%),
+      0 8px 18px -6px rgb(91 81 72 / 10%);
+    transform: rotate(2deg) translate(-6px, 7px);
+    transition: transform 0.35s ease;
+  }
+
+  /* Subtle "fan out" on hover — back layers shift a touch further apart
+     while the top card (below) lifts independently. */
+  .album-card:hover::before {
+    transform: rotate(-3deg) translate(11px, 12px);
+  }
+
+  .album-card:hover::after {
+    transform: rotate(3deg) translate(-8px, 9px);
+  }
+
+  .album-card__polaroid {
+    position: relative;
+    z-index: 2;
+    overflow: hidden;
+    background: linear-gradient(150deg, #fffdf8 0%, #fffdf8 45%, #f4ede1 100%);
+    padding: 0.8rem 0.8rem 0;
+    border-radius: 3px 2px 4px 2px;
+    box-shadow:
+      0 1px 2px rgb(91 81 72 / 20%),
+      0 14px 32px -8px rgb(91 81 72 / 18%);
+    transition:
+      transform 0.35s ease,
+      box-shadow 0.35s ease;
+  }
+
+  .album-card:hover .album-card__polaroid {
+    transform: translateY(-4px);
+    box-shadow:
+      0 2px 4px rgb(91 81 72 / 24%),
+      0 22px 44px -10px rgb(91 81 72 / 24%);
+  }
+
+  /* Subtle cardstock grain — single shared background-image rule, not
+     duplicated per element instance; painted between the frame background
+     and the photo/text content. */
+  .album-card__polaroid::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 140px 140px;
+  }
+
+  .album-card__photo {
+    position: relative;
+    z-index: 2;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background-color: var(--color-surface-alt);
+    border-radius: 2px;
+  }
+
+  /* Faint warm tint mimicking aged film emulsion, layered on top of the image. */
+  .album-card__photo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    background: linear-gradient(
+      140deg,
+      rgb(231 185 138 / 16%),
+      rgb(235 201 196 / 10%)
+    );
+  }
+
+  .album-card__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: saturate(0.9) contrast(0.95) brightness(1.02);
+  }
+
+  .album-card__strip {
+    position: relative;
+    z-index: 2;
+    padding: 0.95rem 0.45rem 1.2rem;
+    text-align: center;
+  }
+
+  .album-card__title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.02rem;
+    font-weight: 700;
+    line-height: 1.45;
+    color: var(--color-text-primary);
+  }
+
+  .album-card__meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    margin: 0.4rem 0 0;
+    font-family: var(--font-heading);
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+
+  .album-card__dot {
+    opacity: 0.55;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .album-card__polaroid,
+    .album-card::before,
+    .album-card::after {
+      transition: none;
+    }
+
+    .album-card:hover .album-card__polaroid {
+      transform: none;
+    }
+
+    .album-card:hover::before {
+      transform: rotate(-2deg) translate(9px, 10px);
+    }
+
+    .album-card:hover::after {
+      transform: rotate(2deg) translate(-6px, 7px);
+    }
+  }
+</style>

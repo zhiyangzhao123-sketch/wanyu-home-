@@ -1,0 +1,47 @@
+---
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+
+interface Props {
+  src: ImageMetadata;
+  alt: string;
+  caption?: string;
+}
+
+const { src, alt, caption } = Astro.props;
+---
+
+<figure class="article-figure">
+  <Image
+    src={src}
+    alt={alt}
+    class="article-figure__image"
+    loading="lazy"
+    decoding="async"
+  />
+  {caption && <figcaption class="article-figure__caption">{caption}</figcaption>}
+</figure>
+
+<style>
+  .article-figure {
+    margin: 1.75rem 0;
+    text-align: center;
+  }
+
+  .article-figure__image {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    margin-inline: auto;
+    border-radius: 16px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .article-figure__caption {
+    margin: 0.65rem 0 0;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+</style>
