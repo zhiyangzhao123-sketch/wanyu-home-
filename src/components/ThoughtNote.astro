@@ -2,6 +2,7 @@
 import { formatThoughtMeta } from "../utils/content";
 
 interface Props {
+  id: string;
   content: string;
   pubDate: Date;
   mood?: string;
@@ -10,7 +11,7 @@ interface Props {
   class?: string;
 }
 
-const { content, pubDate, mood, weather, index, class: className } = Astro.props;
+const { id, content, pubDate, mood, weather, index, class: className } = Astro.props;
 
 const NOTE_COLORS = ["#FFFAEF", "#FDF6DC", "#FBEAE6", "#EFF5E8"];
 const bg = NOTE_COLORS[index % NOTE_COLORS.length];
@@ -26,7 +27,33 @@ const meta = formatThoughtMeta(pubDate, mood, weather);
 >
   <span class="thought-note__tape" aria-hidden="true"></span>
   <p class="thought-note__body">{content}</p>
-  <footer class="thought-note__meta">{meta}</footer>
+  <footer class="thought-note__meta">
+    <span class="thought-note__meta-text">{meta}</span>
+    <button
+      type="button"
+      class="thought-note__like"
+      data-like-button
+      data-thought-id={id}
+      aria-label="喜欢这条碎碎念"
+      aria-pressed="false"
+    >
+      <svg
+        class="thought-note__like-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <path
+          d="M12 20.5s-6.9-4.35-9.4-8.35C.9 9.2 1.7 5.85 4.7 4.6c2.3-.95 4.6.05 7.3 2.65 2.7-2.6 5-3.6 7.3-2.65 3 1.25 3.8 4.6 2.1 7.55-2.5 4-9.4 8.35-9.4 8.35Z"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linejoin="round"
+        ></path>
+      </svg>
+      <span class="thought-note__like-count" data-like-count>0</span>
+    </button>
+  </footer>
 </li>
 
 <style>
@@ -80,7 +107,87 @@ const meta = formatThoughtMeta(pubDate, mood, weather);
     margin-top: 1rem;
     padding-top: 0.85rem;
     border-top: 1px solid rgb(91 81 72 / 8%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
     font-size: 0.82rem;
     color: var(--color-text-secondary);
+  }
+
+  .thought-note__meta-text {
+    min-width: 0;
+  }
+
+  .thought-note__like {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex-shrink: 0;
+    padding: 0.2rem 0.5rem;
+    border: none;
+    border-radius: 999px;
+    background: none;
+    color: var(--color-text-secondary);
+    font-size: 0.78rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition:
+      background-color 0.25s ease,
+      color 0.25s ease;
+  }
+
+  .thought-note__like:hover:not(:disabled) {
+    background-color: rgb(235 201 196 / 20%);
+    color: var(--color-text-primary);
+  }
+
+  .thought-note__like:disabled {
+    cursor: default;
+  }
+
+  .thought-note__like-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+  }
+
+  .thought-note__like.is-liked {
+    color: var(--color-accent-pink);
+  }
+
+  .thought-note__like.is-liked .thought-note__like-icon {
+    fill: var(--color-accent-pink);
+    stroke: var(--color-accent-pink);
+  }
+
+  .thought-note__like.is-liked.is-popping .thought-note__like-icon {
+    animation: thought-note-like-pop 0.4s ease;
+  }
+
+  @keyframes thought-note-like-pop {
+    0% {
+      transform: scale(1);
+    }
+    35% {
+      transform: scale(1.35);
+    }
+    60% {
+      transform: scale(0.92);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .thought-note__like-icon {
+      transition: none;
+    }
+
+    .thought-note__like.is-liked.is-popping .thought-note__like-icon {
+      animation: none;
+    }
   }
 </style>

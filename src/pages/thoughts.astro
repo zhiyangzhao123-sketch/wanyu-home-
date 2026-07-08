@@ -85,6 +85,7 @@ for (const thought of allThoughts) {
                 <ul class="thoughts-month__notes">
                   {group.entries.map((thought, index) => (
                     <ThoughtNote
+                      id={thought.id}
                       content={thought.body?.trim() ?? ""}
                       pubDate={thought.data.pubDate}
                       mood={thought.data.mood}
@@ -158,6 +159,98 @@ for (const thought of allThoughts) {
 
   initThoughtsAnchor();
   document.addEventListener("astro:page-load", initThoughtsAnchor);
+</script>
+
+<script>
+  const THOUGHTS_LIKES_API = "https://thoughts-likes-api.papersheep123.workers.dev";
+
+  function initThoughtsLikes() {
+    const buttons = document.querySelectorAll<HTMLButtonElement>("[data-like-button]");
+    if (!buttons.length) return;
+
+    const ids = Array.from(
+      new Set(
+        Array.from(buttons)
+          .map((button) => button.dataset.thoughtId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+    if (!ids.length) return;
+
+    const likedIds = new Set<string>();
+
+    const getCountEl = (button: HTMLButtonElement) =>
+      button.querySelector<HTMLElement>("[data-like-count]");
+
+    const setCount = (button: HTMLButtonElement, value: number) => {
+      const el = getCountEl(button);
+      if (el) el.textContent = String(Math.max(0, value));
+    };
+
+    const getCount = (button: HTMLButtonElement) => {
+      const el = getCountEl(button);
+      return Number(el?.textContent) || 0;
+    };
+
+    // Batch-fetch all visible thoughts' counts in one request rather than
+    // one request per note.
+    const url = new URL(THOUGHTS_LIKES_API);
+    url.searchParams.set("ids", ids.join(","));
+
+    fetch(url.toString())
+      .then((res) => {
+        if (!res.ok) throw new Error(`thoughts likes api ${res.status}`);
+        return res.json();
+      })
+      .then((counts: Record<string, number>) => {
+        buttons.forEach((button) => {
+          const id = button.dataset.thoughtId;
+          if (!id) return;
+          const count = counts?.[id];
+          if (typeof count === "number") setCount(button, count);
+        });
+      })
+      .catch(() => {
+        // Fail gracefully: notes just keep their default 0 count.
+      });
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const id = button.dataset.thoughtId;
+        if (!id || likedIds.has(id)) return;
+
+        likedIds.add(id);
+        button.disabled = true;
+        button.setAttribute("aria-pressed", "true");
+        button.classList.add("is-liked", "is-popping");
+        setCount(button, getCount(button) + 1);
+
+        fetch(THOUGHTS_LIKES_API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        })
+          .then((res) => {
+            if (!res.ok) throw new Error(`thoughts likes api ${res.status}`);
+            return res.json();
+          })
+          .then((data: { likes?: number }) => {
+            if (typeof data?.likes === "number") setCount(button, data.likes);
+          })
+          .catch(() => {
+            // Revert silently on failure — low-stakes feature, no error UI.
+            likedIds.delete(id);
+            button.disabled = false;
+            button.setAttribute("aria-pressed", "false");
+            button.classList.remove("is-liked", "is-popping");
+            setCount(button, getCount(button) - 1);
+          });
+      });
+    });
+  }
+
+  initThoughtsLikes();
+  document.addEventListener("astro:page-load", initThoughtsLikes);
 </script>
 
 <style>

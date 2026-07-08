@@ -83,11 +83,33 @@ const cover = getBlogCover(post.data.cover);
       )
     }
 
+    <section class="blog-article__comments container-reading" data-reveal="content">
+      <h2 class="blog-article__comments-heading">说点什么</h2>
+      <section class="giscus"></section>
+    </section>
+
     <p class="blog-article__back container-reading">
       <a href="/blog/">回到全部文章 →</a>
     </p>
   </article>
 </BaseLayout>
+
+<script
+  is:inline
+  src="https://giscus.app/client.js"
+  data-repo="zhiyangzhao123-sketch/wanyu-home-"
+  data-repo-id="R_kgDOTQD18w"
+  data-category="Announcements"
+  data-category-id="DIC_kwDOTQD1884DAvjn"
+  data-mapping="pathname"
+  data-strict="0"
+  data-reactions-enabled="1"
+  data-emit-metadata="0"
+  data-input-position="bottom"
+  data-theme="https://linwanyu.top/giscus-theme.css"
+  data-lang="zh-CN"
+  crossorigin="anonymous"
+  async></script>
 
 <style>
   .blog-article {
@@ -301,8 +323,20 @@ const cover = getBlogCover(post.data.cover);
     }
   }
 
+  .blog-article__comments {
+    margin-top: 3.5rem;
+  }
+
+  .blog-article__comments-heading {
+    margin: 0 0 1.5rem;
+    font-family: var(--font-heading);
+    font-size: 22px;
+    color: var(--color-text-primary);
+    text-align: center;
+  }
+
   .blog-article__back {
-    margin: 2rem auto 0;
+    margin: 2.5rem auto 0;
     text-align: center;
   }
 
