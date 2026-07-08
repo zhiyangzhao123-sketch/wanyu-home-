@@ -1,26 +1,5 @@
 ---
 import SectionHeader from "./SectionHeader.astro";
-
-const messages = [
-  {
-    name: "小云 ☁️",
-    text: "宛瑜的网站好温柔，看了心情都变好了～",
-    hearts: 12,
-    color: "#EBC9C4",
-  },
-  {
-    name: "阿哲",
-    text: "加油呀！实习辛苦了，记得好好休息。",
-    hearts: 8,
-    color: "#E7B98A",
-  },
-  {
-    name: "Mimi",
-    text: "五月天那篇什么时候写！等你更新 🎵",
-    hearts: 5,
-    color: "#A9C8A2",
-  },
-];
 ---
 
 <section class="side-card guestbook-preview" data-reveal="content" data-reveal-delay="80">
@@ -31,27 +10,139 @@ const messages = [
     linkLabel="去留言 →"
   />
 
-  <ul class="guestbook-preview__list">
-    {
-      messages.map((message) => (
-        <li class="guestbook-preview__item">
-          <div
-            class="guestbook-preview__avatar"
-            style={{ backgroundColor: message.color }}
-            aria-hidden="true"
-          >
-            {message.name.charAt(0)}
-          </div>
-          <div class="guestbook-preview__content">
-            <p class="guestbook-preview__name">{message.name}</p>
-            <p class="guestbook-preview__text">{message.text}</p>
-            <p class="guestbook-preview__hearts">♥ {message.hearts}</p>
-          </div>
-        </li>
-      ))
-    }
-  </ul>
+  <div class="guestbook-preview__body" id="guestbook-preview-body">
+    <ul class="guestbook-preview__list" aria-hidden="true">
+      <li class="guestbook-preview__skeleton"></li>
+      <li class="guestbook-preview__skeleton"></li>
+      <li class="guestbook-preview__skeleton"></li>
+    </ul>
+    <p class="guestbook-preview__loading">加载中...</p>
+  </div>
 </section>
+
+<script>
+  const GUESTBOOK_API = "https://guestbook-api.papersheep123.workers.dev";
+  const MAX_ITEMS = 3;
+  const FALLBACK_COLORS = ["#EBC9C4", "#E7B98A", "#A9C8A2"];
+  const EMPTY_MESSAGE = "还没有留言，欢迎来当第一个人吧 🌱";
+
+  interface GuestbookComment {
+    author?: string;
+    avatar?: string;
+    text?: string;
+    date?: string;
+    likes?: number;
+  }
+
+  function renderEmpty(root: HTMLElement, message: string) {
+    const p = document.createElement("p");
+    p.className = "guestbook-preview__empty";
+    p.textContent = message;
+    root.replaceChildren(p);
+  }
+
+  function renderComments(root: HTMLElement, comments: GuestbookComment[]) {
+    if (!comments.length) {
+      renderEmpty(root, EMPTY_MESSAGE);
+      return;
+    }
+
+    const list = document.createElement("ul");
+    list.className = "guestbook-preview__list";
+
+    comments.slice(0, MAX_ITEMS).forEach((comment, index) => {
+      const li = document.createElement("li");
+      li.className = "guestbook-preview__item";
+
+      const author = comment.author?.trim() || "匿名";
+
+      const avatar = document.createElement("div");
+      avatar.className = "guestbook-preview__avatar";
+      avatar.setAttribute("aria-hidden", "true");
+      // Inline styles are set explicitly (not just via class) because this
+      // node is created client-side, outside Astro's scoped-CSS pipeline —
+      // relying solely on the scoped stylesheet risks the class not
+      // matching, so size/shape are guaranteed here regardless of CSS scope.
+      Object.assign(avatar.style, {
+        position: "relative",
+        width: "36px",
+        height: "36px",
+        borderRadius: "50%",
+        overflow: "hidden",
+        display: "grid",
+        placeItems: "center",
+        flexShrink: "0",
+        backgroundColor: FALLBACK_COLORS[index % FALLBACK_COLORS.length],
+      });
+
+      const initial = document.createElement("span");
+      initial.className = "guestbook-preview__avatar-fallback";
+      initial.textContent = author.charAt(0).toUpperCase();
+      avatar.appendChild(initial);
+
+      if (comment.avatar) {
+        const img = document.createElement("img");
+        img.className = "guestbook-preview__avatar-img";
+        img.src = comment.avatar;
+        img.alt = "";
+        img.loading = "lazy";
+        img.decoding = "async";
+        Object.assign(img.style, {
+          position: "absolute",
+          inset: "0",
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          borderRadius: "50%",
+        });
+        img.addEventListener("error", () => img.remove());
+        avatar.appendChild(img);
+      }
+
+      const content = document.createElement("div");
+      content.className = "guestbook-preview__content";
+
+      const name = document.createElement("p");
+      name.className = "guestbook-preview__name";
+      name.textContent = author;
+
+      const text = document.createElement("p");
+      text.className = "guestbook-preview__text";
+      text.textContent = comment.text?.trim() || "";
+
+      const hearts = document.createElement("p");
+      hearts.className = "guestbook-preview__hearts";
+      hearts.textContent = `♥ ${Number.isFinite(comment.likes) ? comment.likes : 0}`;
+
+      content.append(name, text, hearts);
+      li.append(avatar, content);
+      list.appendChild(li);
+    });
+
+    root.replaceChildren(list);
+  }
+
+  function initGuestbookPreview() {
+    const root = document.getElementById("guestbook-preview-body");
+    if (!root) return;
+
+    fetch(GUESTBOOK_API)
+      .then((res) => {
+        if (!res.ok) throw new Error(`guestbook api ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        const comments = Array.isArray(data?.comments) ? data.comments : [];
+        renderComments(root, comments);
+      })
+      .catch(() => {
+        renderEmpty(root, EMPTY_MESSAGE);
+      });
+  }
+
+  initGuestbookPreview();
+  document.addEventListener("astro:page-load", initGuestbookPreview);
+</script>
 
 <style>
   .guestbook-preview {
@@ -61,7 +152,19 @@ const messages = [
     box-shadow: var(--shadow-card);
   }
 
-  .guestbook-preview__list {
+  .guestbook-preview__body {
+    position: relative;
+  }
+
+  /*
+   * The list/item/avatar/name/text/hearts nodes below are created
+   * client-side (document.createElement) by the fetch script, not rendered
+   * by Astro's template compiler — so they never receive the
+   * data-astro-cid-* attribute Astro uses to scope this <style> block.
+   * These rules are wrapped in :global() so they still match those
+   * dynamically-created elements by class name alone.
+   */
+  :global(.guestbook-preview__list) {
     list-style: none;
     margin: 0;
     padding: 0;
@@ -70,32 +173,48 @@ const messages = [
     gap: 0.85rem;
   }
 
-  .guestbook-preview__item {
+  :global(.guestbook-preview__item) {
     display: grid;
     grid-template-columns: 36px 1fr;
     gap: 0.65rem;
     align-items: start;
   }
 
-  .guestbook-preview__avatar {
+  :global(.guestbook-preview__avatar) {
+    position: relative;
     width: 36px;
     height: 36px;
-    border-radius: 999px;
+    border-radius: 50%;
     display: grid;
     place-items: center;
     font-size: 0.82rem;
     color: var(--color-text-primary);
     font-weight: 600;
+    overflow: hidden;
+    flex-shrink: 0;
   }
 
-  .guestbook-preview__name {
+  :global(.guestbook-preview__avatar-fallback) {
+    line-height: 1;
+  }
+
+  :global(.guestbook-preview__avatar-img) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  :global(.guestbook-preview__name) {
     margin: 0;
     font-size: 0.82rem;
     color: var(--color-text-primary);
     line-height: 1.3;
   }
 
-  .guestbook-preview__text {
+  :global(.guestbook-preview__text) {
     margin: 0.2rem 0 0;
     font-size: 0.8rem;
     line-height: 1.55;
@@ -106,9 +225,55 @@ const messages = [
     overflow: hidden;
   }
 
-  .guestbook-preview__hearts {
+  :global(.guestbook-preview__hearts) {
     margin: 0.25rem 0 0;
     font-size: 0.72rem;
     color: rgb(231 185 138 / 90%);
+  }
+
+  /* --- Loading skeleton --- */
+  .guestbook-preview__loading {
+    margin: 0.6rem 0 0;
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+  }
+
+  .guestbook-preview__skeleton {
+    height: 36px;
+    border-radius: 12px;
+    background: linear-gradient(
+      100deg,
+      var(--color-surface-alt) 30%,
+      rgb(231 185 138 / 16%) 50%,
+      var(--color-surface-alt) 70%
+    );
+    background-size: 200% 100%;
+    animation: guestbook-shimmer 1.6s ease-in-out infinite;
+  }
+
+  @keyframes guestbook-shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  /* --- Empty / error state (also client-created, needs :global()) --- */
+  :global(.guestbook-preview__empty) {
+    margin: 0.5rem 0 0;
+    padding: 1.1rem 0.5rem;
+    text-align: center;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: var(--color-text-secondary);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .guestbook-preview__skeleton {
+      animation: none;
+    }
   }
 </style>

@@ -1,0 +1,148 @@
+/*! MIT License
+ * Copyright (c) 2018 GitHub Inc.
+ * https://github.com/primer/primitives/blob/main/LICENSE
+ *
+ * Custom giscus theme for 宛瑜的小窝 (linwanyu.top).
+ * Structurally based on giscus's own "light" theme (same custom-property
+ * names, same rule shape) — only the color values below were remapped to
+ * this site's warm cream/brown design tokens (see src/styles/global.css).
+ * This file is loaded directly by giscus's iframe (a separate document),
+ * so values are hardcoded hex/rgb literals rather than CSS var() references
+ * into the host page.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap");
+
+main {
+  /* Syntax highlighting inside pasted code blocks — left as giscus's
+     original, accessible values; not part of the widget's visual chrome. */
+  --color-prettylights-syntax-comment: #6e7781;
+  --color-prettylights-syntax-constant: #0550ae;
+  --color-prettylights-syntax-entity: #8250df;
+  --color-prettylights-syntax-storage-modifier-import: #24292f;
+  --color-prettylights-syntax-entity-tag: #116329;
+  --color-prettylights-syntax-keyword: #cf222e;
+  --color-prettylights-syntax-string: #0a3069;
+  --color-prettylights-syntax-variable: #953800;
+  --color-prettylights-syntax-brackethighlighter-unmatched: #82071e;
+  --color-prettylights-syntax-invalid-illegal-text: #f6f8fa;
+  --color-prettylights-syntax-invalid-illegal-bg: #82071e;
+  --color-prettylights-syntax-carriage-return-text: #f6f8fa;
+  --color-prettylights-syntax-carriage-return-bg: #cf222e;
+  --color-prettylights-syntax-string-regexp: #116329;
+  --color-prettylights-syntax-markup-list: #3b2300;
+  --color-prettylights-syntax-markup-heading: #0550ae;
+  --color-prettylights-syntax-markup-italic: #24292f;
+  --color-prettylights-syntax-markup-bold: #24292f;
+  --color-prettylights-syntax-markup-deleted-text: #82071e;
+  --color-prettylights-syntax-markup-deleted-bg: #ffebe9;
+  --color-prettylights-syntax-markup-inserted-text: #116329;
+  --color-prettylights-syntax-markup-inserted-bg: #dafbe1;
+  --color-prettylights-syntax-markup-changed-text: #953800;
+  --color-prettylights-syntax-markup-changed-bg: #ffd8b5;
+  --color-prettylights-syntax-markup-ignored-text: #eaeef2;
+  --color-prettylights-syntax-markup-ignored-bg: #0550ae;
+  --color-prettylights-syntax-meta-diff-range: #8250df;
+  --color-prettylights-syntax-brackethighlighter-angle: #57606a;
+  --color-prettylights-syntax-sublimelinter-gutter-mark: #8c959f;
+  --color-prettylights-syntax-constant-other-reference-link: #0a3069;
+
+  /* Buttons — bg mirrors --color-surface-alt, mirroring the site's own
+     .fact-card / pill button treatments */
+  --color-btn-text: #5b5148;
+  --color-btn-bg: #f3eee6;
+  --color-btn-border: rgb(91 81 72 / 15%);
+  --color-btn-shadow: 0 1px 0 rgb(91 81 72 / 4%);
+  --color-btn-inset-shadow: inset 0 1px 0 rgb(255 253 248 / 25%);
+  --color-btn-hover-bg: rgb(231 185 138 / 14%);
+  --color-btn-hover-border: rgb(91 81 72 / 20%);
+  --color-btn-active-bg: rgb(231 185 138 / 22%);
+  --color-btn-active-border: rgb(91 81 72 / 20%);
+  --color-btn-selected-bg: rgb(231 185 138 / 24%);
+
+  /* Primary button — brand bg + warm-brown text, same pairing as the
+     site's own brand-colored CTA in Hero.astro (kept for contrast, not
+     white-on-tan) */
+  --color-btn-primary-text: #5b5148;
+  --color-btn-primary-bg: #e7b98a;
+  --color-btn-primary-border: rgb(91 81 72 / 15%);
+  --color-btn-primary-shadow: 0 1px 0 rgb(91 81 72 / 10%);
+  --color-btn-primary-inset-shadow: inset 0 1px 0 rgb(255 253 248 / 20%);
+  --color-btn-primary-hover-bg: #cba379; /* --color-brand, darkened ~12% for hover */
+  --color-btn-primary-hover-border: rgb(91 81 72 / 15%);
+  --color-btn-primary-selected-bg: #b4906c; /* --color-brand, darkened ~22% for pressed */
+  --color-btn-primary-selected-shadow: inset 0 1px 0 rgb(91 61 30 / 20%);
+  --color-btn-primary-disabled-text: rgb(91 81 72 / 60%);
+  --color-btn-primary-disabled-bg: rgb(231 185 138 / 45%);
+  --color-btn-primary-disabled-border: rgb(91 81 72 / 15%);
+
+  --color-action-list-item-default-hover-bg: rgb(231 185 138 / 12%);
+
+  --color-segmented-control-bg: #f3eee6;
+  --color-segmented-control-button-bg: #fffdf8;
+  --color-segmented-control-button-selected-border: #e7b98a;
+
+  /* Text — --color-text-primary / --color-text-secondary */
+  --color-fg-default: #5b5148;
+  --color-fg-muted: #8a8178;
+  --color-fg-subtle: #8a8178;
+
+  /* Surfaces — --color-surface / --color-surface-alt */
+  --color-canvas-default: #fffdf8;
+  --color-canvas-overlay: #fffdf8;
+  --color-canvas-inset: #f3eee6;
+  --color-canvas-subtle: #f3eee6;
+
+  /* Borders — --color-divider */
+  --color-border-default: #ece5da;
+  --color-border-muted: rgb(236 229 218 / 70%);
+  --color-neutral-muted: rgb(91 81 72 / 10%);
+
+  /* Accent (links, focus rings, mentions) — --color-brand, matching the
+     site's own link-color convention (e.g. .about-closing a) */
+  --color-accent-fg: #e7b98a;
+  --color-accent-emphasis: #e7b98a;
+  --color-accent-muted: rgb(231 185 138 / 35%);
+  --color-accent-subtle: rgb(231 185 138 / 14%);
+
+  /* Status colors — mapped onto the site's warm palette rather than
+     GitHub's green/yellow/red, since there's no dedicated status set */
+  --color-success-fg: #a9c8a2; /* --color-accent-green */
+  --color-attention-fg: #cba379; /* darker --color-brand shade, for legible small labels */
+  --color-attention-muted: rgb(203 163 121 / 35%);
+  --color-attention-subtle: rgb(231 185 138 / 12%);
+  --color-danger-fg: #a9918d; /* darker --color-accent-pink shade */
+  --color-danger-muted: rgb(235 201 196 / 40%);
+  --color-danger-subtle: rgb(235 201 196 / 20%);
+
+  --color-primer-shadow-inset: inset 0 1px 0 rgb(236 229 218 / 20%);
+
+  --color-scale-gray-1: #f3eee6;
+  --color-scale-blue-1: #f7e9e7; /* lightened --color-accent-pink, for reacted-hover fill */
+
+  /*! Extensions from @primer/css/alerts/flash.scss */
+  --color-social-reaction-bg-hover: var(--color-scale-gray-1);
+  --color-social-reaction-bg-reacted-hover: var(--color-scale-blue-1);
+}
+
+main,
+main input,
+main textarea,
+main button {
+  font-family:
+    "Nunito",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "PingFang TC",
+    "Microsoft JhengHei",
+    sans-serif;
+}
+
+main .pagination-loader-container {
+  background-image: url("https://github.com/images/modules/pulls/progressive-disclosure-line.svg");
+}
+
+main .gsc-loading-image {
+  background-image: url("https://github.githubassets.com/images/mona-loading-default.gif");
+}

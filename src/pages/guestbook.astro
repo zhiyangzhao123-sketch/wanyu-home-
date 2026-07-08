@@ -1,0 +1,67 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SectionTitle from "../components/SectionTitle.astro";
+---
+
+<BaseLayout
+  title="留言板 | 宛瑜的小窝"
+  description="路过的话，留句话给我吧，我都会认真读完的。"
+>
+  <div class="guestbook-page container-reading">
+    <header class="guestbook-page__header" data-reveal="content">
+      <SectionTitle title="留言板" subtitle="路过的话，留句话给我吧 🌷" />
+    </header>
+
+    <p class="guestbook-page__note" data-reveal="content">
+      留言需要用 GitHub 账号登入一下才能送出，没有帐号的话也可以顺手注册一个，很快的～登入之后随便写点什么都好，我都会一条一条认真读完 🐾
+    </p>
+
+    <section class="giscus" data-reveal="content"></section>
+  </div>
+</BaseLayout>
+
+<script
+  is:inline
+  src="https://giscus.app/client.js"
+  data-repo="zhiyangzhao123-sketch/wanyu-home-"
+  data-repo-id="R_kgDOTQD18w"
+  data-category="Announcements"
+  data-category-id="DIC_kwDOTQD1884DAvjn"
+  data-mapping="pathname"
+  data-strict="0"
+  data-reactions-enabled="1"
+  data-emit-metadata="0"
+  data-input-position="bottom"
+  data-theme="https://linwanyu.top/giscus-theme.css"
+  data-lang="zh-CN"
+  crossorigin="anonymous"
+  async></script>
+
+<style>
+  .guestbook-page {
+    padding-block: calc(4rem + 2rem) 5rem;
+  }
+
+  .guestbook-page__header :global(.section-title) {
+    margin-bottom: 2rem;
+  }
+
+  .guestbook-page__note {
+    margin: 0 0 2.5rem;
+    padding: 0.9rem 1.2rem;
+    border-radius: var(--radius-card-lg);
+    background-color: rgb(231 185 138 / 12%);
+    color: var(--color-text-secondary);
+    font-size: 0.88rem;
+    line-height: 1.75;
+    text-align: center;
+  }
+
+  .giscus {
+    min-height: 12rem;
+  }
+
+  .giscus :global(iframe.giscus-frame) {
+    width: 100%;
+  }
+</style>
