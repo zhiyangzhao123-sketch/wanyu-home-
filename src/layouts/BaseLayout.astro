@@ -1,7 +1,9 @@
 ---
+import { ClientRouter } from "astro:transitions";
 import Navbar from "../components/Navbar.astro";
 import Footer from "../components/Footer.astro";
 import ScrollReveal from "../components/ScrollReveal.astro";
+import SiteAudioPlayer from "../components/SiteAudioPlayer.astro";
 import "../styles/global.css";
 
 interface Props {
@@ -24,8 +26,10 @@ const {
     <meta name="generator" content={Astro.generator} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
+    <ClientRouter />
   </head>
   <body class="min-h-screen flex flex-col bg-background text-text-primary">
+    <SiteAudioPlayer />
     <Navbar />
     <main class="flex-1">
       <slot />

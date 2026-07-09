@@ -1,0 +1,643 @@
+---
+// Full music player card for the homepage. It never creates its own
+// <audio> element — it only reads/controls the single shared player set
+// up by SiteAudioPlayer.astro (via window.sitePlayer + the
+// "siteplayer:update" event), so it always stays in sync with the mini
+// control in the navbar. The track list itself is rendered here straight
+// from the same src/data/music-tracks.ts module the navbar reads, so
+// there's a single source of truth for track metadata.
+import { tracks } from "../data/music-tracks";
+---
+
+<div class="music-player-card" data-music-player data-reveal="content">
+  <div class="music-player-card__art" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="11" fill="var(--color-surface-alt)"></circle>
+      <path
+        d="M9.5 15.8c-1.1 0-2-.85-2-1.9s.9-1.9 2-1.9c.34 0 .66.08.94.23V8.4c0-.32.22-.6.53-.67l4.5-1c.4-.09.78.22.78.63v5.75c0 1.05-.9 1.9-2 1.9s-2-.85-2-1.9.9-1.9 2-1.9c.15 0 .3.02.44.05V9.3l-3.5.78v4.62c0 .05 0 .1-.01.15-.03.99-.9 1.79-1.94 1.79Z"
+        fill="var(--color-brand)"></path>
+    </svg>
+  </div>
+
+  <div class="music-player-card__body">
+    <div class="music-player-card__info">
+      <p class="music-player-card__title" data-music-title>宛瑜的小歌单</p>
+      <p class="music-player-card__artist" data-music-artist>点击播放试试～</p>
+    </div>
+
+    <div class="music-player-card__progress">
+      <span class="music-player-card__time" data-music-current>0:00</span>
+      <input
+        type="range"
+        class="music-player-card__seek"
+        data-music-seek
+        min="0"
+        max="100"
+        step="0.1"
+        value="0"
+        aria-label="播放进度"
+        disabled
+      />
+      <span class="music-player-card__time" data-music-duration>0:00</span>
+    </div>
+
+    <div class="music-player-card__controls">
+      <button type="button" class="music-player-card__btn" data-music-prev aria-label="上一首" disabled>
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M8 6.5v11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+          <path d="M17 6.8v10.4a.6.6 0 0 1-.93.5L8.9 12.5a.6.6 0 0 1 0-1l7.17-4.7a.6.6 0 0 1 .93.5Z" fill="currentColor"></path>
+        </svg>
+      </button>
+
+      <button
+        type="button"
+        class="music-player-card__btn music-player-card__btn--play"
+        data-music-toggle
+        aria-label="播放"
+        aria-pressed="false"
+        disabled
+      >
+        <svg
+          class="music-player-card__icon music-player-card__icon--play"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <path d="M8 5.5v13l11-6.5-11-6.5Z" fill="currentColor"></path>
+        </svg>
+        <svg
+          class="music-player-card__icon music-player-card__icon--pause"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <rect x="6.5" y="5" width="4" height="14" rx="1" fill="currentColor"></rect>
+          <rect x="13.5" y="5" width="4" height="14" rx="1" fill="currentColor"></rect>
+        </svg>
+      </button>
+
+      <button type="button" class="music-player-card__btn" data-music-next aria-label="下一首" disabled>
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M16 6.5v11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+          <path d="M7 6.8v10.4a.6.6 0 0 0 .93.5l7.17-4.7a.6.6 0 0 0 0-1L7.93 6.3a.6.6 0 0 0-.93.5Z" fill="currentColor"></path>
+        </svg>
+      </button>
+
+      {
+        tracks.length > 0 && (
+          <button
+            type="button"
+            class="music-player-card__btn"
+            data-music-playlist-toggle
+            aria-label="播放列表"
+            aria-haspopup="listbox"
+            aria-expanded="false"
+            disabled
+          >
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <circle cx="5" cy="7" r="1.3" fill="currentColor"></circle>
+              <circle cx="5" cy="12" r="1.3" fill="currentColor"></circle>
+              <circle cx="5" cy="17" r="1.3" fill="currentColor"></circle>
+              <path
+                d="M9.5 7h9M9.5 12h9M9.5 17h9"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"></path>
+            </svg>
+          </button>
+        )
+      }
+    </div>
+
+    {
+      tracks.length > 0 && (
+        <ul
+          class="music-player-card__playlist"
+          data-music-playlist
+          hidden
+          role="listbox"
+          aria-label="播放列表"
+        >
+          {tracks.map((track, index) => (
+            <li role="presentation">
+              <button
+                type="button"
+                class="music-player-card__playlist-item"
+                data-music-playlist-item
+                data-track-index={index}
+                role="option"
+                aria-selected="false"
+              >
+                <span class="music-player-card__playlist-marker" aria-hidden="true">
+                  ▶
+                </span>
+                <span class="music-player-card__playlist-text">
+                  <span class="music-player-card__playlist-title">{track.title}</span>
+                  <span class="music-player-card__playlist-artist">{track.artist}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+
+  <p class="music-player-card__empty" data-music-empty hidden>暂无音乐，敬请期待 🎵</p>
+</div>
+
+<script>
+  function formatTime(seconds: number) {
+    if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${String(s).padStart(2, "0")}`;
+  }
+
+  function renderMusicPlayerCard(card: HTMLElement, state: any) {
+    const title = card.querySelector<HTMLElement>("[data-music-title]");
+    const artist = card.querySelector<HTMLElement>("[data-music-artist]");
+    const currentEl = card.querySelector<HTMLElement>("[data-music-current]");
+    const durationEl = card.querySelector<HTMLElement>("[data-music-duration]");
+    const seek = card.querySelector<HTMLInputElement>("[data-music-seek]");
+    const toggle = card.querySelector<HTMLButtonElement>("[data-music-toggle]");
+    const prev = card.querySelector<HTMLButtonElement>("[data-music-prev]");
+    const next = card.querySelector<HTMLButtonElement>("[data-music-next]");
+    const playlistToggle = card.querySelector<HTMLButtonElement>("[data-music-playlist-toggle]");
+    const empty = card.querySelector<HTMLElement>("[data-music-empty]");
+    const body = card.querySelector<HTMLElement>(".music-player-card__body");
+    const items = card.querySelectorAll<HTMLButtonElement>("[data-music-playlist-item]");
+
+    const playable = Boolean(state?.hasTracks) && !state?.unavailable;
+
+    if (empty) empty.hidden = playable;
+    if (body) body.style.display = playable ? "" : "none";
+
+    if (!playable) {
+      if (toggle) toggle.disabled = true;
+      if (prev) prev.disabled = true;
+      if (next) next.disabled = true;
+      if (seek) seek.disabled = true;
+      if (playlistToggle) playlistToggle.disabled = true;
+      return;
+    }
+
+    if (title) title.textContent = state.track?.title ?? "宛瑜的小歌单";
+    if (artist) artist.textContent = state.track?.artist ?? "";
+
+    if (toggle) {
+      toggle.disabled = false;
+      toggle.classList.toggle("is-playing", Boolean(state.isPlaying));
+      toggle.setAttribute("aria-pressed", state.isPlaying ? "true" : "false");
+      toggle.setAttribute("aria-label", state.isPlaying ? "暂停" : "播放");
+    }
+    if (prev) prev.disabled = false;
+    if (next) next.disabled = false;
+    if (playlistToggle) playlistToggle.disabled = false;
+
+    items.forEach((item) => {
+      const isCurrent = Number(item.dataset.trackIndex) === state.index;
+      item.classList.toggle("is-current", isCurrent);
+      item.setAttribute("aria-selected", isCurrent ? "true" : "false");
+    });
+
+    if (seek) {
+      seek.disabled = false;
+      const duration = state.duration || 0;
+      if (document.activeElement !== seek) {
+        seek.value = duration > 0 ? String((state.currentTime / duration) * 100) : "0";
+      }
+    }
+    if (currentEl) currentEl.textContent = formatTime(state.currentTime);
+    if (durationEl) durationEl.textContent = formatTime(state.duration);
+  }
+
+  const PLAYLIST_ANIM_MS = 160;
+
+  function prefersReducedMotion() {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  function openMusicPlaylist(panel: HTMLElement, toggleBtn: HTMLButtonElement) {
+    window.clearTimeout((panel as any)._closeTimer);
+    panel.hidden = false;
+    toggleBtn.setAttribute("aria-expanded", "true");
+    if (prefersReducedMotion()) {
+      panel.classList.add("is-open");
+    } else {
+      requestAnimationFrame(() => panel.classList.add("is-open"));
+    }
+  }
+
+  function closeMusicPlaylist(panel: HTMLElement, toggleBtn: HTMLButtonElement) {
+    window.clearTimeout((panel as any)._closeTimer);
+    toggleBtn.setAttribute("aria-expanded", "false");
+    panel.classList.remove("is-open");
+    if (prefersReducedMotion()) {
+      panel.hidden = true;
+    } else {
+      (panel as any)._closeTimer = window.setTimeout(() => {
+        panel.hidden = true;
+      }, PLAYLIST_ANIM_MS);
+    }
+  }
+
+  let musicCardListenersBound = false;
+
+  // `astro:page-load` fires on the very first page load *as well as*
+  // every client-side navigation, so this init function actually runs
+  // twice on a page's first load (once from the direct call below, once
+  // from the event). Without this guard, that would attach two separate
+  // click listeners to the same button — one real click would then call
+  // sitePlayer.toggle() twice, which is exactly what caused the
+  // play-button-silently-stops-working bug. Tracking already-bound
+  // elements in a WeakSet makes re-running this function on the same
+  // (unchanged) DOM safe, while still binding fresh listeners on a truly
+  // new button after a navigation replaces it.
+  const boundMusicCardControls = new WeakSet<Element>();
+
+  function initMusicPlayerCard() {
+    const card = document.querySelector<HTMLElement>("[data-music-player]");
+    if (!card) return;
+
+    const player = (window as any).sitePlayer;
+    if (player) renderMusicPlayerCard(card, player.getState());
+
+    const toggle = card.querySelector<HTMLButtonElement>("[data-music-toggle]");
+    const prev = card.querySelector<HTMLButtonElement>("[data-music-prev]");
+    const next = card.querySelector<HTMLButtonElement>("[data-music-next]");
+    const seek = card.querySelector<HTMLInputElement>("[data-music-seek]");
+
+    if (toggle && !boundMusicCardControls.has(toggle)) {
+      boundMusicCardControls.add(toggle);
+      toggle.addEventListener("click", () => (window as any).sitePlayer?.toggle());
+    }
+    if (prev && !boundMusicCardControls.has(prev)) {
+      boundMusicCardControls.add(prev);
+      prev.addEventListener("click", () => (window as any).sitePlayer?.prev());
+    }
+    if (next && !boundMusicCardControls.has(next)) {
+      boundMusicCardControls.add(next);
+      next.addEventListener("click", () => (window as any).sitePlayer?.next());
+    }
+    if (seek && !boundMusicCardControls.has(seek)) {
+      boundMusicCardControls.add(seek);
+      seek.addEventListener("input", () => {
+        const p = (window as any).sitePlayer;
+        const state = p?.getState?.();
+        if (!p || !state?.duration) return;
+        const target = (Number(seek.value) / 100) * state.duration;
+        p.seek(target);
+      });
+    }
+
+    const playlistToggle = card.querySelector<HTMLButtonElement>("[data-music-playlist-toggle]");
+    const playlist = card.querySelector<HTMLElement>("[data-music-playlist]");
+
+    if (playlistToggle && playlist && !boundMusicCardControls.has(playlistToggle)) {
+      boundMusicCardControls.add(playlistToggle);
+      playlistToggle.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const isOpen = playlistToggle.getAttribute("aria-expanded") === "true";
+        if (isOpen) closeMusicPlaylist(playlist, playlistToggle);
+        else openMusicPlaylist(playlist, playlistToggle);
+      });
+    }
+
+    const playlistItems = card.querySelectorAll<HTMLButtonElement>("[data-music-playlist-item]");
+    playlistItems.forEach((item) => {
+      if (boundMusicCardControls.has(item)) return;
+      boundMusicCardControls.add(item);
+      item.addEventListener("click", () => {
+        const index = Number(item.dataset.trackIndex);
+        if (Number.isNaN(index)) return;
+        (window as any).sitePlayer?.selectTrack(index);
+        if (playlist && playlistToggle) closeMusicPlaylist(playlist, playlistToggle);
+      });
+    });
+
+    // See the comment in Navbar.astro's initMusicMini for why the shared
+    // window-level listeners are bound only once ever, and re-query the
+    // live current card instead of closing over this specific node.
+    if (!musicCardListenersBound) {
+      musicCardListenersBound = true;
+
+      window.addEventListener("siteplayer:update", (event) => {
+        const current = document.querySelector<HTMLElement>("[data-music-player]");
+        if (current) renderMusicPlayerCard(current, (event as CustomEvent).detail);
+      });
+
+      window.addEventListener("siteplayer:ready", () => {
+        const current = document.querySelector<HTMLElement>("[data-music-player]");
+        const p = (window as any).sitePlayer;
+        if (current && p) renderMusicPlayerCard(current, p.getState());
+      });
+
+      // Close the playlist popover on an outside click, on Escape, and
+      // proactively before a view-transition swap (so it never appears
+      // stuck open mid-navigation). These all re-query the live DOM each
+      // time they fire rather than closing over one specific node.
+      document.addEventListener("click", (event) => {
+        const current = document.querySelector<HTMLElement>("[data-music-player]");
+        const currentToggle = current?.querySelector<HTMLButtonElement>(
+          "[data-music-playlist-toggle]",
+        );
+        const currentPlaylist = current?.querySelector<HTMLElement>("[data-music-playlist]");
+        if (!currentToggle || !currentPlaylist || currentPlaylist.hidden) return;
+        if (event.target instanceof Node && current?.contains(event.target)) {
+          if (currentToggle.contains(event.target) || currentPlaylist.contains(event.target)) {
+            return;
+          }
+        }
+        closeMusicPlaylist(currentPlaylist, currentToggle);
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        const current = document.querySelector<HTMLElement>("[data-music-player]");
+        const currentToggle = current?.querySelector<HTMLButtonElement>(
+          "[data-music-playlist-toggle]",
+        );
+        const currentPlaylist = current?.querySelector<HTMLElement>("[data-music-playlist]");
+        if (currentToggle && currentPlaylist && !currentPlaylist.hidden) {
+          closeMusicPlaylist(currentPlaylist, currentToggle);
+        }
+      });
+
+      document.addEventListener("astro:before-swap", () => {
+        const current = document.querySelector<HTMLElement>("[data-music-player]");
+        const currentToggle = current?.querySelector<HTMLButtonElement>(
+          "[data-music-playlist-toggle]",
+        );
+        const currentPlaylist = current?.querySelector<HTMLElement>("[data-music-playlist]");
+        if (currentToggle && currentPlaylist) {
+          currentPlaylist.hidden = true;
+          currentPlaylist.classList.remove("is-open");
+          currentToggle.setAttribute("aria-expanded", "false");
+        }
+      });
+    }
+  }
+
+  initMusicPlayerCard();
+  document.addEventListener("astro:page-load", initMusicPlayerCard);
+</script>
+
+<style>
+  .music-player-card {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    background-color: var(--color-surface);
+    border-radius: 20px;
+    padding: 1.25rem;
+    box-shadow: var(--shadow-card);
+  }
+
+  .music-player-card__art {
+    flex-shrink: 0;
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .music-player-card__art svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .music-player-card__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .music-player-card__title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    color: var(--color-text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .music-player-card__artist {
+    margin: 0.15rem 0 0;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .music-player-card__progress {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .music-player-card__time {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    color: var(--color-text-secondary);
+    min-width: 2.1em;
+    text-align: center;
+  }
+
+  .music-player-card__seek {
+    flex: 1;
+    height: 4px;
+    appearance: none;
+    background: var(--color-divider);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
+  .music-player-card__seek::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: var(--color-brand);
+    transition: transform 0.15s ease;
+  }
+
+  .music-player-card__seek::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--color-brand);
+  }
+
+  .music-player-card__seek:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+
+  .music-player-card__controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+  }
+
+  .music-player-card__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .music-player-card__btn svg {
+    width: 1.2rem;
+    height: 1.2rem;
+  }
+
+  .music-player-card__btn:hover:not(:disabled) {
+    background-color: rgb(231 185 138 / 14%);
+    color: var(--color-brand);
+  }
+
+  .music-player-card__btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .music-player-card__btn--play {
+    width: 2.6rem;
+    height: 2.6rem;
+    background-color: var(--color-brand);
+    color: #fff;
+  }
+
+  .music-player-card__btn--play:hover:not(:disabled) {
+    background-color: var(--color-brand);
+    color: #fff;
+    opacity: 0.88;
+  }
+
+  .music-player-card__icon--pause {
+    display: none;
+  }
+
+  .music-player-card__btn--play.is-playing .music-player-card__icon--play {
+    display: none;
+  }
+
+  .music-player-card__btn--play.is-playing .music-player-card__icon--pause {
+    display: block;
+  }
+
+  .music-player-card__empty {
+    flex: 1;
+    align-self: center;
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+  }
+
+  .music-player-card__playlist {
+    list-style: none;
+    margin: 0;
+    padding: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: 14px;
+    background-color: var(--color-surface-alt);
+    box-shadow: inset 0 0 0 1px var(--color-divider);
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+
+  .music-player-card__playlist.is-open {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .music-player-card__playlist-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--color-text-primary);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .music-player-card__playlist-item:hover {
+    background-color: rgb(231 185 138 / 14%);
+  }
+
+  .music-player-card__playlist-item.is-current {
+    background-color: rgb(231 185 138 / 22%);
+  }
+
+  .music-player-card__playlist-marker {
+    flex-shrink: 0;
+    width: 0.8em;
+    font-size: 0.65rem;
+    color: var(--color-brand);
+    opacity: 0;
+  }
+
+  .music-player-card__playlist-item.is-current .music-player-card__playlist-marker {
+    opacity: 1;
+  }
+
+  .music-player-card__playlist-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .music-player-card__playlist-title {
+    font-size: 0.85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .music-player-card__playlist-item.is-current .music-player-card__playlist-title {
+    color: var(--color-brand);
+  }
+
+  .music-player-card__playlist-artist {
+    font-size: 0.72rem;
+    color: var(--color-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .music-player-card__btn,
+    .music-player-card__seek::-webkit-slider-thumb,
+    .music-player-card__playlist,
+    .music-player-card__playlist-item {
+      transition-duration: 0.01ms;
+    }
+  }
+</style>

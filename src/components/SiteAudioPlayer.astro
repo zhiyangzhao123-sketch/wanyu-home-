@@ -1,0 +1,143 @@
+---
+// The single, persistent <audio> element for the whole site. It lives here
+// (rendered once via BaseLayout, on every page) rather than inside the
+// homepage's player card or the navbar's mini control, so that both UIs can
+// share one real playback source. `transition:persist` keeps this exact DOM
+// node (and therefore playback state/position) alive across client-side
+// navigations instead of it being destroyed and recreated.
+---
+
+<audio id="site-audio" preload="none" transition:persist="site-audio-player"></audio>
+
+<script>
+  import { tracks } from "../data/music-tracks";
+
+  interface SitePlayerState {
+    hasTracks: boolean;
+    index: number;
+    track: { title: string; artist: string; src: string } | null;
+    isPlaying: boolean;
+    currentTime: number;
+    duration: number;
+    unavailable: boolean;
+  }
+
+  interface SitePlayerApi {
+    tracks: typeof tracks;
+    play: () => void;
+    pause: () => void;
+    toggle: () => void;
+    next: () => void;
+    prev: () => void;
+    seek: (time: number) => void;
+    selectTrack: (index: number) => void;
+    getState: () => SitePlayerState;
+  }
+
+  // This script tag is a bundled module, so — per Astro's own view
+  // transitions behavior — its top-level code only ever runs once for the
+  // whole browsing session regardless of how many client-side navigations
+  // happen afterwards. The `if (!window.sitePlayer)` guard below is kept
+  // anyway as a defensive safety net, matching Astro's documented pattern
+  // for scripts that set up global state.
+  if (!(window as any).sitePlayer) {
+    const audio = document.getElementById("site-audio") as HTMLAudioElement | null;
+
+    if (audio) {
+      let currentIndex = 0;
+      let unavailable = false;
+
+      const getState = (): SitePlayerState => ({
+        hasTracks: tracks.length > 0,
+        index: currentIndex,
+        track: tracks[currentIndex] ?? null,
+        isPlaying: !audio.paused && !audio.ended,
+        currentTime: audio.currentTime || 0,
+        duration: audio.duration || 0,
+        unavailable,
+      });
+
+      const dispatchUpdate = () => {
+        window.dispatchEvent(new CustomEvent("siteplayer:update", { detail: getState() }));
+      };
+
+      // A play() promise can reject for benign, transient reasons — most
+      // notably being interrupted by another play()/pause()/load() call
+      // fired moments later (an AbortError). That does NOT mean the file
+      // is missing, so we deliberately do not flip `unavailable` here.
+      // The real signal for "this file doesn't exist" is the audio
+      // element's own `error` event, handled below.
+      const swallowPlayInterruption = () => {};
+
+      const loadTrack = (index: number, autoplay: boolean) => {
+        if (!tracks.length) return;
+        currentIndex = ((index % tracks.length) + tracks.length) % tracks.length;
+        unavailable = false;
+        audio.src = tracks[currentIndex].src;
+        if (autoplay) {
+          audio.play().catch(swallowPlayInterruption);
+        }
+        dispatchUpdate();
+      };
+
+      const play = () => {
+        if (!tracks.length) return;
+        if (!audio.src) {
+          loadTrack(currentIndex, true);
+          return;
+        }
+        audio.play().catch(swallowPlayInterruption);
+      };
+
+      const pause = () => audio.pause();
+      const toggle = () => (audio.paused ? play() : pause());
+      const next = () => loadTrack(currentIndex + 1, true);
+      const prev = () => loadTrack(currentIndex - 1, true);
+      const seek = (time: number) => {
+        if (Number.isFinite(time)) audio.currentTime = time;
+      };
+      const selectTrack = (index: number) => loadTrack(index, true);
+
+      audio.addEventListener("play", dispatchUpdate);
+      audio.addEventListener("pause", dispatchUpdate);
+      audio.addEventListener("timeupdate", dispatchUpdate);
+      audio.addEventListener("loadedmetadata", () => {
+        unavailable = false;
+        dispatchUpdate();
+      });
+      // Fires when the current src fails to load (e.g. the mp3 file
+      // hasn't been added to public/music/ yet) — surfaced as a graceful
+      // "暂无音乐" state rather than a broken/erroring player.
+      audio.addEventListener("error", () => {
+        unavailable = true;
+        dispatchUpdate();
+      });
+      audio.addEventListener("ended", next);
+
+      (window as any).sitePlayer = {
+        tracks,
+        play,
+        pause,
+        toggle,
+        next,
+        prev,
+        seek,
+        selectTrack,
+        getState,
+      } satisfies SitePlayerApi;
+
+      // No proactive availability probe here on purpose: an earlier
+      // version did a HEAD request to guess availability upfront, but
+      // that resolves asynchronously and could race with (and override)
+      // a real, successful play attempt. Availability is now determined
+      // solely by the audio element's own `error` / `loadedmetadata`
+      // events above, which reflect the actual playback attempt.
+      if (!tracks.length) {
+        unavailable = true;
+      }
+      dispatchUpdate();
+
+      window.dispatchEvent(new CustomEvent("siteplayer:ready"));
+    }
+  }
+</script>
