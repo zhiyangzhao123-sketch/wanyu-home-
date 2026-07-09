@@ -223,120 +223,172 @@ function isActive(href: string) {
 
 <script>
   const MENU_ANIM_MS = 200;
+  let navPanelCloseTimer: number | undefined;
 
-  function initNavbar() {
+  function setNavStage(navbar: HTMLElement, stage: 1 | 2 | 3) {
+    navbar.dataset.stage = String(stage);
+    navbar.classList.remove("nav-stage-1", "nav-stage-2", "nav-stage-3");
+    navbar.classList.add(`nav-stage-${stage}`);
+  }
+
+  // Re-queries the live navbar/hero elements every time instead of closing
+  // over references captured at bind time — the navbar isn't
+  // transition:persist, so real navigations give it fresh DOM nodes, and a
+  // stale closure would keep updating an element that's no longer on screen.
+  function updateNavbarStage() {
     const navbar = document.querySelector<HTMLElement>("[data-site-navbar]");
+    if (!navbar) return;
+
     const hero = document.getElementById("hero");
+    if (!hero) {
+      setNavStage(navbar, 3);
+      return;
+    }
+
+    const scrollY = window.scrollY;
+    const heroRect = hero.getBoundingClientRect();
+    const navHeight = navbar.offsetHeight;
+    const dashboard = document.getElementById("home-dashboard");
+    const dashboardTop =
+      dashboard?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
+    const passedHero =
+      heroRect.bottom <= navHeight || dashboardTop <= window.innerHeight * 0.55;
+
+    if (passedHero) {
+      setNavStage(navbar, 3);
+    } else if (scrollY >= 100) {
+      setNavStage(navbar, 2);
+    } else {
+      setNavStage(navbar, 1);
+    }
+  }
+
+  function finishCloseNavPanel() {
+    const panel = document.querySelector<HTMLElement>("[data-nav-panel]");
+    const backdrop = document.querySelector<HTMLElement>("[data-nav-backdrop]");
+    if (panel) panel.hidden = true;
+    if (backdrop) {
+      backdrop.hidden = true;
+      backdrop.setAttribute("aria-hidden", "true");
+    }
+    document.body.classList.remove("nav-open");
+  }
+
+  function closeNavPanel() {
     const toggle = document.querySelector<HTMLButtonElement>("[data-nav-toggle]");
     const panel = document.querySelector<HTMLElement>("[data-nav-panel]");
     const backdrop = document.querySelector<HTMLElement>("[data-nav-backdrop]");
-    const srLabel = toggle?.querySelector<HTMLElement>(".sr-only");
+    if (!toggle || !panel || !backdrop) return;
+    const srLabel = toggle.querySelector<HTMLElement>(".sr-only");
+
+    window.clearTimeout(navPanelCloseTimer);
+    toggle.setAttribute("aria-expanded", "false");
+    panel.classList.remove("is-open");
+    backdrop.classList.remove("is-open");
+    if (srLabel) srLabel.textContent = "開啟選單";
+
+    navPanelCloseTimer = window.setTimeout(finishCloseNavPanel, MENU_ANIM_MS);
+  }
+
+  function openNavPanel() {
+    const toggle = document.querySelector<HTMLButtonElement>("[data-nav-toggle]");
+    const panel = document.querySelector<HTMLElement>("[data-nav-panel]");
+    const backdrop = document.querySelector<HTMLElement>("[data-nav-backdrop]");
+    if (!toggle || !panel || !backdrop) return;
+    const srLabel = toggle.querySelector<HTMLElement>(".sr-only");
+
+    window.clearTimeout(navPanelCloseTimer);
+    panel.hidden = false;
+    backdrop.hidden = false;
+    backdrop.setAttribute("aria-hidden", "false");
+    toggle.setAttribute("aria-expanded", "true");
+    document.body.classList.add("nav-open");
+    if (srLabel) srLabel.textContent = "關閉選單";
+
+    requestAnimationFrame(() => {
+      panel.classList.add("is-open");
+      backdrop.classList.add("is-open");
+    });
+  }
+
+  // `astro:page-load` fires on the first page load AND every subsequent
+  // navigation, so `initNavbar` below runs twice on first load — without
+  // this guard, that double-run attached two click listeners to the same
+  // toggle button. On click, the first listener flipped aria-expanded to
+  // "true" and opened the menu; the second listener (same click event, same
+  // tick) then read that already-flipped "true" and immediately closed it
+  // again — the exact "flashes and collapses" symptom. Elements themselves
+  // (WeakSet keys) are fine to guard per-node: real navigations replace the
+  // navbar's DOM (it isn't transition:persist), so a genuinely new toggle
+  // node still passes the `has()` check and gets bound correctly.
+  const boundNavElements = new WeakSet<Element>();
+  let navGlobalListenersBound = false;
+
+  function initNavbar() {
+    const navbar = document.querySelector<HTMLElement>("[data-site-navbar]");
+    const toggle = document.querySelector<HTMLButtonElement>("[data-nav-toggle]");
+    const panel = document.querySelector<HTMLElement>("[data-nav-panel]");
+    const backdrop = document.querySelector<HTMLElement>("[data-nav-backdrop]");
 
     if (!navbar || !toggle || !panel || !backdrop) return;
 
-    const hasHero = Boolean(hero);
-    let closeTimer: number | undefined;
-
-    function setStage(stage: 1 | 2 | 3) {
-      navbar!.dataset.stage = String(stage);
-      navbar!.classList.remove("nav-stage-1", "nav-stage-2", "nav-stage-3");
-      navbar!.classList.add(`nav-stage-${stage}`);
-    }
-
-    function updateNavbarStage() {
-      if (!hasHero) {
-        setStage(3);
-        return;
-      }
-
-      const scrollY = window.scrollY;
-      const heroRect = hero!.getBoundingClientRect();
-      const navHeight = navbar!.offsetHeight;
-      const dashboard = document.getElementById("home-dashboard");
-      const dashboardTop =
-        dashboard?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
-      const passedHero =
-        heroRect.bottom <= navHeight ||
-        dashboardTop <= window.innerHeight * 0.55;
-
-      if (passedHero) {
-        setStage(3);
-      } else if (scrollY >= 100) {
-        setStage(2);
-      } else {
-        setStage(1);
-      }
-    }
-
-    function finishClose() {
-      panel.hidden = true;
-      backdrop.hidden = true;
-      backdrop.setAttribute("aria-hidden", "true");
-      document.body.classList.remove("nav-open");
-    }
-
-    function closePanel() {
-      window.clearTimeout(closeTimer);
-      toggle.setAttribute("aria-expanded", "false");
-      panel.classList.remove("is-open");
-      backdrop.classList.remove("is-open");
-      if (srLabel) srLabel.textContent = "開啟選單";
-
-      closeTimer = window.setTimeout(finishClose, MENU_ANIM_MS);
-    }
-
-    function openPanel() {
-      window.clearTimeout(closeTimer);
-      panel.hidden = false;
-      backdrop.hidden = false;
-      backdrop.setAttribute("aria-hidden", "false");
-      toggle.setAttribute("aria-expanded", "true");
-      document.body.classList.add("nav-open");
-      if (srLabel) srLabel.textContent = "關閉選單";
-
-      requestAnimationFrame(() => {
-        panel.classList.add("is-open");
-        backdrop.classList.add("is-open");
-      });
-    }
-
     updateNavbarStage();
 
-    let ticking = false;
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        updateNavbarStage();
-        if (panel.classList.contains("is-open")) closePanel();
-        ticking = false;
+    if (!boundNavElements.has(toggle)) {
+      boundNavElements.add(toggle);
+      toggle.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const expanded = toggle.getAttribute("aria-expanded") === "true";
+        if (expanded) closeNavPanel();
+        else openNavPanel();
       });
-    };
+    }
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", () => {
-      updateNavbarStage();
-      if (window.innerWidth >= 1024 && panel.classList.contains("is-open")) {
-        closePanel();
-      }
-    });
-
-    toggle.addEventListener("click", (event) => {
-      event.stopPropagation();
-      const expanded = toggle.getAttribute("aria-expanded") === "true";
-      if (expanded) closePanel();
-      else openPanel();
-    });
-
-    backdrop.addEventListener("click", closePanel);
+    if (!boundNavElements.has(backdrop)) {
+      boundNavElements.add(backdrop);
+      backdrop.addEventListener("click", closeNavPanel);
+    }
 
     panel.querySelectorAll("a").forEach((link) => {
-      link.addEventListener("click", closePanel);
+      if (boundNavElements.has(link)) return;
+      boundNavElements.add(link);
+      link.addEventListener("click", closeNavPanel);
     });
 
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") closePanel();
-    });
+    // window/document listeners target persistent objects (not recreated
+    // per navigation), so they're bound once ever — each handler re-queries
+    // the live panel/toggle above instead of closing over this call's nodes.
+    if (!navGlobalListenersBound) {
+      navGlobalListenersBound = true;
+
+      let ticking = false;
+      window.addEventListener(
+        "scroll",
+        () => {
+          if (ticking) return;
+          ticking = true;
+          requestAnimationFrame(() => {
+            updateNavbarStage();
+            const currentPanel = document.querySelector<HTMLElement>("[data-nav-panel]");
+            if (currentPanel?.classList.contains("is-open")) closeNavPanel();
+            ticking = false;
+          });
+        },
+        { passive: true },
+      );
+
+      window.addEventListener("resize", () => {
+        updateNavbarStage();
+        const currentPanel = document.querySelector<HTMLElement>("[data-nav-panel]");
+        if (window.innerWidth >= 1024 && currentPanel?.classList.contains("is-open")) {
+          closeNavPanel();
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeNavPanel();
+      });
+    }
   }
 
   initNavbar();

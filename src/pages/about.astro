@@ -2,6 +2,7 @@
 import type { ImageMetadata } from "astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import SectionTitle from "../components/SectionTitle.astro";
+import AiChatWidget from "../components/AiChatWidget.astro";
 
 const avatarModules = import.meta.glob<{ default: ImageMetadata }>(
   "../assets/avatar.png",
@@ -191,13 +192,7 @@ const contacts = [
       </div>
     </section>
 
-    <section class="about-teaser" data-reveal="content">
-      <span class="about-teaser__badge">敬请期待</span>
-      <p class="about-teaser__text">跟婉瑜 AI 聊天</p>
-      <p class="about-teaser__desc">
-        我在偷偷学怎么跟大家聊天，很快就可以直接找我说话了～到时候再来找我玩呀 🌙
-      </p>
-    </section>
+    <AiChatWidget />
 
     <section class="about-closing" data-reveal="content">
       <p>
@@ -211,9 +206,13 @@ const contacts = [
 </BaseLayout>
 
 <script>
+  const boundContactCopyButtons = new WeakSet<Element>();
+
   function initContactCopy() {
     const buttons = document.querySelectorAll<HTMLButtonElement>(".contact-card__copy");
     buttons.forEach((button) => {
+      if (boundContactCopyButtons.has(button)) return;
+      boundContactCopyButtons.add(button);
       button.addEventListener("click", async () => {
         const text = button.dataset.copy;
         if (!text) return;
@@ -234,6 +233,7 @@ const contacts = [
   }
 
   initContactCopy();
+  document.addEventListener("astro:page-load", initContactCopy);
 </script>
 
 <style>
@@ -464,60 +464,6 @@ const contacts = [
     cursor: default;
   }
 
-  /* --- AI chat teaser --- */
-  .about-teaser {
-    position: relative;
-    margin-bottom: 4.5rem;
-    padding: 1.75rem 1.75rem;
-    border-radius: var(--radius-card-lg);
-    text-align: center;
-    background: linear-gradient(135deg, rgb(231 185 138 / 14%), rgb(235 201 196 / 18%));
-    border: 1px solid rgb(231 185 138 / 30%);
-    box-shadow: var(--shadow-card);
-    animation: about-teaser-glow 3.5s ease-in-out infinite;
-  }
-
-  .about-teaser__badge {
-    display: inline-block;
-    margin-bottom: 0.75rem;
-    padding: 0.3rem 0.85rem;
-    border-radius: 999px;
-    background-color: var(--color-surface);
-    color: var(--color-brand);
-    font-size: 0.75rem;
-    letter-spacing: 0.04em;
-    box-shadow: var(--shadow-card);
-  }
-
-  .about-teaser__text {
-    margin: 0;
-    font-family: var(--font-heading);
-    font-size: 1.2rem;
-    color: var(--color-text-primary);
-  }
-
-  .about-teaser__desc {
-    margin: 0.6rem auto 0;
-    max-width: 32rem;
-    color: var(--color-text-secondary);
-    font-size: 0.92rem;
-    line-height: 1.75;
-  }
-
-  @keyframes about-teaser-glow {
-    0%,
-    100% {
-      box-shadow:
-        var(--shadow-card),
-        0 0 0 0 rgb(231 185 138 / 35%);
-    }
-    50% {
-      box-shadow:
-        var(--shadow-card),
-        0 0 0 10px rgb(231 185 138 / 0%);
-    }
-  }
-
   /* --- Closing --- */
   .about-closing {
     max-width: var(--width-reading);
@@ -551,10 +497,6 @@ const contacts = [
     .contact-card,
     .contact-card__copy {
       transition: none;
-    }
-
-    .about-teaser {
-      animation: none;
     }
   }
 </style>
