@@ -56,7 +56,16 @@ const thoughts = (await getCollection("thoughts"))
   .thoughts-strip {
     list-style: none;
     margin: 0;
-    padding: 0.35rem 0.15rem 0.5rem;
+    /*
+     * `overflow-x: auto` here forces the browser to also treat `overflow-y`
+     * as a clipping ("auto") context per the CSS overflow spec, even though
+     * it's never set explicitly — you can't have one axis scrollable and
+     * the other truly `visible`. The washi-tape sticker on each note pokes
+     * up 7px above the note's own box (`.thought-note__tape { top: -7px }`),
+     * so top padding needs to comfortably cover that (plus the hover-lift
+     * translate below) or it gets silently clipped by this container.
+     */
+    padding: 0.85rem 0.15rem 0.5rem;
     display: flex;
     gap: 1rem;
     overflow-x: auto;
@@ -100,12 +109,24 @@ const thoughts = (await getCollection("thoughts"))
       translate 0.35s ease;
   }
 
-  .thought-note:hover {
-    rotate: 0deg;
-    translate: 0 -4px;
-    box-shadow:
-      0 8px 18px rgb(91 81 72 / 12%),
-      0 2px 6px rgb(91 81 72 / 8%);
+  /*
+   * Gated to real pointer devices only: some mobile Chromium builds apply a
+   * lingering ":hover" state after a tap (rather than suppressing it like
+   * others do), which would trigger this lift/rotate-reset from a simple
+   * scroll-snap tap-and-drag — pushing the note (and its washi tape) up
+   * into the clipped headroom above this horizontally-scrolling strip.
+   * Restricting :hover to `(hover: hover) and (pointer: fine)` means touch
+   * input never triggers it at all, regardless of a given mobile browser's
+   * own tap/hover-simulation behavior.
+   */
+  @media (hover: hover) and (pointer: fine) {
+    .thought-note:hover {
+      rotate: 0deg;
+      translate: 0 -4px;
+      box-shadow:
+        0 8px 18px rgb(91 81 72 / 12%),
+        0 2px 6px rgb(91 81 72 / 8%);
+    }
   }
 
   .thought-note__tape {

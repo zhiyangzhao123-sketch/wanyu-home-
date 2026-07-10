@@ -21,6 +21,33 @@ const {
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      Defense-in-depth only: GitHub Pages' own "Enforce HTTPS" setting for
+      the linwanyu.top custom domain is the real fix (a platform-level
+      redirect issued before any HTML/JS loads) and should be verified/kept
+      on in the repo's Settings → Pages. This inline script is a client-side
+      fallback for the rare case that setting is off or a stale www./http
+      link is bookmarked — it only ever targets the known production
+      hostnames, never localhost/preview URLs, so local `astro dev` is
+      unaffected.
+    -->
+    <script is:inline>
+      (function () {
+        var canonicalHost = "linwanyu.top";
+        var host = window.location.hostname;
+        var isHttpOnApex = host === canonicalHost && window.location.protocol === "http:";
+        var isWww = host === "www." + canonicalHost;
+        if (isHttpOnApex || isWww) {
+          window.location.replace(
+            "https://" +
+              canonicalHost +
+              window.location.pathname +
+              window.location.search +
+              window.location.hash,
+          );
+        }
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />

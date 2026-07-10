@@ -132,8 +132,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.25rem;
+  /* Extra bottom padding accounts for a mobile browser's own persistent
+     chrome (e.g. Edge for Android's bottom bar) that can overlay the lower
+     edge of the fixed viewport without shrinking it. */
+  padding: 1.25rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
   background: rgb(91 81 72 / 58%);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   animation: gallery-lightbox-fade-in 0.25s ease;
 }
@@ -141,7 +145,15 @@
 .gallery-lightbox__panel {
   position: relative;
   width: min(100%, 980px);
+  /* `vh` on Chromium-Android sizes to the *largest possible* viewport (as
+     if the browser's toolbar were always hidden), so it can overshoot the
+     actual visible area when a browser's chrome (like Edge's bottom bar)
+     is showing — cutting off content at the bottom. `dvh` was added
+     specifically to track the real, current visible viewport instead; the
+     `vh` line stays first purely as a fallback for browsers that don't
+     support `dvh` yet (an unsupported value is ignored, not applied). */
   max-height: calc(100vh - 2.5rem);
+  max-height: calc(100dvh - 2.5rem);
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -151,6 +163,7 @@
 .gallery-lightbox__figure {
   margin: 0;
   max-height: calc(100vh - 6rem);
+  max-height: calc(100dvh - 6rem);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -162,6 +175,7 @@
   display: block;
   max-width: 100%;
   max-height: calc(100vh - 9rem);
+  max-height: calc(100dvh - 9rem);
   width: auto;
   height: auto;
   border-radius: 16px;

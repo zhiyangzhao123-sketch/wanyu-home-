@@ -938,6 +938,19 @@ function isActive(href: string) {
     transform: translateY(-6px) rotate(-45deg);
   }
 
+  /*
+   * initNavbar()'s JS adds/removes "nav-open" on <body> (in BaseLayout.astro,
+   * not this component's own template), so Astro never applies this
+   * component's scoping attribute to it — an unscoped `.nav-open` selector
+   * here would silently never match. Wrapped in :global() for the same
+   * reason already documented in GuestbookPreview.astro/AiChatWidget.astro.
+   * This is what actually locks background scroll while the mobile menu
+   * is open (previously the class was added with no matching style at all).
+   */
+  :global(body.nav-open) {
+    overflow: hidden;
+  }
+
   .site-navbar__backdrop {
     position: fixed;
     inset: 0;
