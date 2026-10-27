@@ -1,0 +1,9 @@
+name = "wanyu-diary-auth"
+main = "worker.js"
+compatibility_date = "2026-10-26"
+workers_dev = true
+
+# Provision secrets using the Cloudflare dashboard or wrangler secret put.
+# Never reuse the guestbook token or chat ADMIN_SECRET.
+[observability]
+enabled = false
