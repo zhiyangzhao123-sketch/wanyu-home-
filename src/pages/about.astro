@@ -18,6 +18,11 @@ const facts = [
     value: "律所实习律师，每天在判决书堆里找灵感，偶尔也找咖啡因。",
   },
   {
+    emoji: "⌨️",
+    label: "最近在学",
+    value: "把所里重复的活儿交给电脑做。进度很慢，但上个月真的用几行字改完了一百多个文件名。",
+  },
+  {
     emoji: "🛋️",
     label: "周末通常在",
     value: "赖床、追剧、在巷子里散步，把日子过得慢一点。",
@@ -324,7 +329,8 @@ const contacts = [
 
   @media (min-width: 768px) {
     .about-facts__grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      /* 卡片数量会变（现在是 4 张），用 auto-fit 让它自己排，别写死 3 列 */
+      grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
     }
   }
 
