@@ -3,7 +3,6 @@ title: 第一次独立见客户的小记录
 description: 紧张到手心冒汗，但好像也没有想象中那么可怕。把那天的小细节记下来，给以后的自己看。
 pubDate: 2026-07-04
 category: 学习日记
-cover: cover-01
 draft: false
 ---
 

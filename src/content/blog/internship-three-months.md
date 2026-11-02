@@ -3,7 +3,6 @@ title: 实习三个月，我学到的五件事
 description: 不是教科书上的那种，是每天上下班、改文件、挨骂、被夸之后，慢慢长出来的体会。
 pubDate: 2026-06-28
 category: 学习日记
-cover: cover-03
 draft: false
 ---
 
