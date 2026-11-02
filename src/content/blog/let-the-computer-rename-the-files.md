@@ -1,7 +1,7 @@
 ---
 title: 让电脑替我改文件名
 description: 一百多份电子卷宗要按日期重新命名。我改到第三十七个就放弃了，去翻一本开源小书。
-pubDate: 2026-11-02
+pubDate: 2026-11-02T13:09:54+08:00
 category: 学习日记
 draft: false
 ---

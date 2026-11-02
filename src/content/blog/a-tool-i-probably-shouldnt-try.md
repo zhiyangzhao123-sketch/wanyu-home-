@@ -1,7 +1,7 @@
 ---
 title: 我试了一个不太该试的工具
 description: 它能把 PDF 做得像用纸扫出来的。好用，但不能乱用——所以我把用法和界线一起写下来。
-pubDate: 2026-11-02
+pubDate: 2026-11-02T11:42:35+08:00
 category: 学习日记
 draft: false
 ---
