@@ -1,5 +1,6 @@
 ---
 
+import { Image } from "astro:assets";
 import type { ImageMetadata } from "astro";
 
 
@@ -26,20 +27,14 @@ const avatar = Object.values(avatarModules)[0] ?? null;
 
       avatar ? (
 
-        <img
-
-          src={avatar.src}
-
+        <Image
+          src={avatar}
           alt=""
-
-          width={avatar.width}
-
-          height={avatar.height}
-
+          width={160}
+          height={160}
+          format="webp"
           loading="lazy"
-
           decoding="async"
-
         />
 
       ) : (
