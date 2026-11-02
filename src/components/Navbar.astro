@@ -185,7 +185,7 @@ function isActive(href: string) {
       <span class="site-navbar__toggle-bar" aria-hidden="true"></span>
       <span class="site-navbar__toggle-bar" aria-hidden="true"></span>
       <span class="site-navbar__toggle-bar" aria-hidden="true"></span>
-      <span class="sr-only">開啟選單</span>
+      <span class="sr-only">开启菜单</span>
     </button>
   </nav>
 
@@ -289,7 +289,7 @@ function isActive(href: string) {
     toggle.setAttribute("aria-expanded", "false");
     panel.classList.remove("is-open");
     backdrop.classList.remove("is-open");
-    if (srLabel) srLabel.textContent = "開啟選單";
+    if (srLabel) srLabel.textContent = "开启菜单";
 
     navPanelCloseTimer = window.setTimeout(finishCloseNavPanel, MENU_ANIM_MS);
   }
@@ -307,7 +307,7 @@ function isActive(href: string) {
     backdrop.setAttribute("aria-hidden", "false");
     toggle.setAttribute("aria-expanded", "true");
     document.body.classList.add("nav-open");
-    if (srLabel) srLabel.textContent = "關閉選單";
+    if (srLabel) srLabel.textContent = "关闭菜单";
 
     requestAnimationFrame(() => {
       panel.classList.add("is-open");
