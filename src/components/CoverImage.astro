@@ -1,0 +1,25 @@
+---
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+
+interface Props {
+  cover: ImageMetadata;
+  widths: number[];
+  sizes: string;
+  loading?: "lazy" | "eager";
+}
+
+// 封面统一从这里出图：WebP + 响应式 srcset。
+// 直接用 <img src={cover.src}> 会把 1600×1000 的原图原样发出去。
+const { cover, widths, sizes, loading = "lazy" } = Astro.props;
+---
+
+<Image
+  src={cover}
+  alt=""
+  widths={widths}
+  sizes={sizes}
+  format="webp"
+  loading={loading}
+  decoding="async"
+/>

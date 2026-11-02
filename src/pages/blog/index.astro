@@ -1,4 +1,5 @@
 ---
+import CoverImage from "../../components/CoverImage.astro";
 import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import SectionTitle from "../../components/SectionTitle.astro";
@@ -59,14 +60,7 @@ const filters = ["全部", "日常", "学习日记"] as const;
                       class="blog-row__media"
                       aria-label={`阅读：${post.data.title}`}
                     >
-                      <img
-                        src={cover.src}
-                        alt=""
-                        width={cover.width}
-                        height={cover.height}
-                        loading="lazy"
-                        decoding="async"
-                      />
+                      <CoverImage cover={cover} widths={[320, 480]} sizes="320px" loading="lazy" />
                     </a>
                   )}
                   <div class="blog-row__body">
