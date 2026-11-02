@@ -1,5 +1,6 @@
 ---
 
+import { Image } from "astro:assets";
 import hero01 from "../assets/hero/hero-01.jpg";
 
 import hero02 from "../assets/hero/hero-02.jpg";
@@ -32,15 +33,19 @@ const slides = [hero01, hero02, hero03];
 
         >
 
-          <img
+          <Image
 
-            src={image.src}
+            src={image}
 
             alt=""
 
-            width={image.width}
+            widths={[640, 1024, 1440, 1920]}
 
-            height={image.height}
+            sizes="100vw"
+
+            format="webp"
+
+            loading={index === 0 ? "eager" : "lazy"}
 
             decoding="async"
 
