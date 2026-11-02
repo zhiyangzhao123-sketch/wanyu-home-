@@ -1,8 +1,24 @@
 @import "tailwindcss";
-@import "lxgw-wenkai-webfont/lxgwwenkai-regular.css";
-@import "lxgw-wenkai-webfont/lxgwwenkai-bold.css";
 @import "@fontsource/nunito/latin-400.css";
 @import "@fontsource/nunito/latin-700.css";
+
+/* 霞鹜文楷：按站内实际字符集子集化（见 wanyu/subset_fonts.py）
+   原先用官方 webfont 包，97 个区间按需下载，一页约 600 KB / 字重 */
+@font-face {
+  font-family: "LXGW WenKai";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/lxgw-wenkai-regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "LXGW WenKai";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/lxgw-wenkai-medium.woff2") format("woff2");
+}
 
 @theme {
   /* Colors */
