@@ -17,6 +17,10 @@ import SectionTitle from "../components/SectionTitle.astro";
     </p>
 
     <section class="giscus" data-reveal="content"></section>
+
+    <p class="guestbook-page__fallback" data-reveal="content">
+      留言板要是加载不出来（网络挡住、或者不想登 GitHub 都算），写信给我也一样能收到：<a href="mailto:papersheep123@gmail.com">papersheep123@gmail.com</a>
+    </p>
   </div>
 </BaseLayout>
 
@@ -60,6 +64,21 @@ import SectionTitle from "../components/SectionTitle.astro";
 
   .giscus {
     min-height: 12rem;
+  }
+
+  .guestbook-page__fallback {
+    margin: 2rem 0 0;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.8;
+    text-align: center;
+  }
+
+  .guestbook-page__fallback a {
+    color: var(--color-brand-strong);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
   }
 
   .giscus :global(iframe.giscus-frame) {
