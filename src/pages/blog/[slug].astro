@@ -5,6 +5,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import CategoryPill from "../../components/CategoryPill.astro";
 import { formatDate } from "../../utils/content";
 import { getBlogCover } from "../../utils/covers";
+import fs from "node:fs";
 
 export async function getStaticPaths() {
   const posts = (await getCollection("blog")).filter((entry) => !entry.data.draft);
@@ -31,9 +32,18 @@ interface Props {
 const { post, prevPost, nextPost } = Astro.props;
 const { Content } = await render(post);
 const cover = getBlogCover(post.data.cover);
+
+// 每篇文章的分享卡片由 wanyu/og_images.py 生成；没有就退回站点默认图。
+const ogCard = `/og/${post.id}.jpg`;
+const hasOgCard = fs.existsSync(`public${ogCard}`);
 ---
 
-<BaseLayout title={`${post.data.title} | 宛瑜的小窝`} description={post.data.description} type="article">
+<BaseLayout
+  title={`${post.data.title} | 宛瑜的小窝`}
+  description={post.data.description}
+  type="article"
+  image={hasOgCard ? ogCard : undefined}
+>
   <article class="blog-article container-content">
     {
       cover && (
