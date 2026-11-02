@@ -18,7 +18,8 @@ export const GET: APIRoute = async () => {
     { loc: "/" },
     { loc: "/blog/", lastmod: posts.map((p) => p.data.pubDate).sort((a, b) => b.valueOf() - a.valueOf())[0] },
     { loc: "/thoughts/", lastmod: latestThought },
-    { loc: "/gallery/" },
+    // 相册为空时不进 sitemap，也不进导航：不把爬虫引到一个空页面。
+    ...(albums.length > 0 ? [{ loc: "/gallery/" }] : []),
     { loc: "/about/" },
     { loc: "/guestbook/" },
     ...posts.map((post) => ({ loc: `/blog/${post.id}/`, lastmod: post.data.pubDate })),
