@@ -3,7 +3,6 @@ title: 在旧卷宗里，遇见十年前的某个人
 description: 整理柜子的时候翻到一份旧卷宗，忽然觉得案子后面站着的是一个个真实的日子。
 pubDate: 2026-11-02
 category: 学习日记
-cover: cover-02
 draft: false
 ---
 
