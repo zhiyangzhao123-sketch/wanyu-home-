@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# 后台与写作入口不参与收录（页面本身也有 noindex）
+Disallow: /admin/
+Disallow: /write/
+
+Sitemap: https://linwanyu.top/sitemap.xml
