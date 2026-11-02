@@ -25,6 +25,10 @@ const ogImage = new URL("/og-cover.jpg", canonicalURL).href;
 <!doctype html>
 <html lang="zh-Hans">
   <head>
+    <script is:inline>
+      // 没有 JS 时不要隐藏内容：动画只在 JS 可用时启用（见 global.css 的 .js 作用域）
+      document.documentElement.classList.add("js");
+    </script>
     <meta charset="UTF-8" />
     <!--
       Defense-in-depth only: GitHub Pages' own "Enforce HTTPS" setting for
