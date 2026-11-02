@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
+import fs from "node:fs";
 
 const SITE = "https://linwanyu.top";
 const TITLE = "宛瑜的小窝";
@@ -11,6 +12,14 @@ const esc = (s: string) =>
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+
+/** 阅读器支持 enclosure 时会直接显示这张卡片，没有就退回纯文字条目。 */
+function enclosureFor(slug: string): string {
+  const rel = `public/og/${slug}.jpg`;
+  if (!fs.existsSync(rel)) return "";
+  const size = fs.statSync(rel).size;
+  return `      <enclosure url="${SITE}/og/${slug}.jpg" type="image/jpeg" length="${size}" />\n`;
+}
 
 export const GET: APIRoute = async () => {
   const posts = (await getCollection("blog"))
@@ -28,7 +37,7 @@ export const GET: APIRoute = async () => {
       <description>${esc(post.data.description)}</description>
       <category>${esc(post.data.category)}</category>
       <pubDate>${post.data.pubDate.toUTCString()}</pubDate>
-    </item>`;
+${enclosureFor(post.id)}    </item>`;
     })
     .join("\n");
 
