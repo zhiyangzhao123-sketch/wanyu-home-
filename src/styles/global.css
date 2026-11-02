@@ -10,8 +10,10 @@
   --color-surface: #fffdf8;
   --color-surface-alt: #f3eee6;
   --color-text-primary: #5b5148;
-  --color-text-secondary: #8a8178;
+  --color-text-secondary: #6f675f;
   --color-brand: #e7b98a;
+  /* 深一档的暖棕：用于正文链接与实心按钮底色，原 --color-brand 在浅底上对比度不足 2:1 */
+  --color-brand-strong: #96602f;
   --color-accent-pink: #ebc9c4;
   --color-accent-green: #a9c8a2;
   --color-divider: #ece5da;
