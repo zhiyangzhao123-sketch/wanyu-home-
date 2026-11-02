@@ -77,9 +77,10 @@ const ogImage = new URL("/og-cover.jpg", canonicalURL).href;
     <ClientRouter />
   </head>
   <body class="min-h-screen flex flex-col bg-background text-text-primary">
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
     <SiteAudioPlayer />
     <Navbar />
-    <main class="flex-1">
+    <main id="main-content" tabindex="-1" class="flex-1">
       <slot />
     </main>
     <Footer />
