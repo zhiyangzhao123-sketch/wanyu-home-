@@ -16,7 +16,7 @@ draft: false
 
 ## 这本书是什么
 
-《Bash 脚本入门指南》，英文名 Introduction to Bash Scripting，作者 Bobby Iliev，开源免费，一共 23 章。前十三章打基础，从 Hello World、变量、条件讲到循环；后面几章是真实场景里的小脚本。
+《Bash 脚本入门指南》，英文名 Introduction to Bash Scripting，作者 Bobby Iliev，开源免费，一共 23 章。前十三章打基础，从 Hello World、变量、条件讲到循环；后面几章是真实场景里的小脚本。在 GitHub 上搜 [introduction-to-bash-scripting](https://github.com/bobbyiliev/introduction-to-bash-scripting) 就能找到，仓库里直接给了 PDF 和 ePub 的下载链接。
 
 它不教你写程序，它教你**把已经在敲的命令串起来**。这是它对我有用的原因——我不需要成为工程师，我只是一百个文件要改名。
 
