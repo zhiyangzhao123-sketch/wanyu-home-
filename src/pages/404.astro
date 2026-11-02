@@ -1,0 +1,78 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="找不到这一页 | 宛瑜的小窝"
+  description="这一页好像走丢了。"
+>
+  <div class="not-found container-content">
+    <p class="not-found__code" aria-hidden="true">404</p>
+    <h1 class="not-found__title">这一页好像走丢了</h1>
+    <p class="not-found__text">
+      可能是地址打错了，也可能是我前几天整理东西，把它挪到别的地方去了。
+    </p>
+    <a class="not-found__back" href="/">回首页慢慢看 →</a>
+  </div>
+</BaseLayout>
+
+<style>
+  .not-found {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 56vh;
+    padding-block: calc(4rem + 3rem) 5rem;
+    text-align: center;
+  }
+
+  .not-found__code {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: clamp(3.5rem, 12vw, 6rem);
+    line-height: 1;
+    color: var(--color-brand);
+    opacity: 0.28;
+    letter-spacing: 0.08em;
+  }
+
+  .not-found__title {
+    margin: 0.75rem 0 0;
+    font-family: var(--font-heading);
+    font-size: clamp(1.35rem, 3vw, 1.75rem);
+    color: var(--color-text-primary);
+  }
+
+  .not-found__text {
+    max-width: 30rem;
+    margin: 1rem 0 0;
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.9;
+  }
+
+  .not-found__back {
+    margin-top: 2rem;
+    padding: 0.6rem 1.6rem;
+    border-radius: 999px;
+    background-color: var(--color-brand);
+    color: var(--color-surface);
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition:
+      transform 0.25s ease,
+      box-shadow 0.25s ease;
+  }
+
+  .not-found__back:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .not-found__back {
+      transition: none;
+    }
+  }
+</style>

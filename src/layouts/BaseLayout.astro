@@ -9,12 +9,17 @@ import "../styles/global.css";
 interface Props {
   title?: string;
   description?: string;
+  type?: "website" | "article";
 }
 
 const {
   title = "宛瑜的小窝",
   description = "记录一点生活，分享一点温柔。",
+  type = "website",
 } = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? "https://linwanyu.top");
+const ogImage = new URL("/og-cover.jpg", canonicalURL).href;
 ---
 
 <!doctype html>
@@ -54,6 +59,20 @@ const {
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="alternate" type="application/rss+xml" title="宛瑜的小窝" href="/rss.xml" />
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+    <link rel="canonical" href={canonicalURL.href} />
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content="宛瑜的小窝" />
+    <meta property="og:locale" content="zh_TW" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL.href} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
     <title>{title}</title>
     <ClientRouter />
   </head>

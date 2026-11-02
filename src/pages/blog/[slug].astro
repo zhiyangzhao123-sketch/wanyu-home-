@@ -32,7 +32,7 @@ const { Content } = await render(post);
 const cover = getBlogCover(post.data.cover);
 ---
 
-<BaseLayout title={`${post.data.title} | 宛瑜的小窝`} description={post.data.description}>
+<BaseLayout title={`${post.data.title} | 宛瑜的小窝`} description={post.data.description} type="article">
   <article class="blog-article container-content">
     {
       cover && (

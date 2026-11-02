@@ -36,6 +36,7 @@
   <div class="container-content site-footer__content">
     <p class="site-footer__text">谢谢你今天来看我。希望今天也有一点点开心 ☁️</p>
     <p class="site-footer__copy">© 宛瑜的小窝</p>
+    <p class="site-footer__feed"><a href="/rss.xml">订阅 RSS</a></p>
   </div>
 </footer>
 
@@ -63,6 +64,25 @@
     margin: 0.5rem 0 0;
     color: rgb(138 129 120 / 70%);
     font-size: 0.875rem;
+  }
+
+  .site-footer__feed {
+    margin: 0.35rem 0 0;
+    font-size: 0.8125rem;
+  }
+
+  .site-footer__feed a {
+    color: rgb(138 129 120 / 70%);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition:
+      color 0.25s ease,
+      border-color 0.25s ease;
+  }
+
+  .site-footer__feed a:hover {
+    color: var(--color-brand);
+    border-bottom-color: currentColor;
   }
 
   .site-footer__doodle {
