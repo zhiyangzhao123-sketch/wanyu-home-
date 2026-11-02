@@ -12,6 +12,8 @@ draft: false
 
 那天晚上我想起 HelloGitHub 里有本开源的 Bash 小书。当时只是存了个书签，觉得「以后也许用得上」。那天晚上就是那个「以后」。
 
+上一次动别人的代码，我只改了一个数字（[那篇在这里](/blog/one-number-in-someone-elses-code/)）；这一次大概得自己写几行了。
+
 ## 这本书是什么
 
 《Bash 脚本入门指南》，英文名 Introduction to Bash Scripting，作者 Bobby Iliev，开源免费，一共 23 章。前十三章打基础，从 Hello World、变量、条件讲到循环；后面几章是真实场景里的小脚本。
