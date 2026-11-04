@@ -3,7 +3,6 @@ import { Image } from "astro:assets";
 import type { ImageMetadata } from "astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import SectionTitle from "../components/SectionTitle.astro";
-import AiChatWidget from "../components/AiChatWidget.astro";
 
 const avatarModules = import.meta.glob<{ default: ImageMetadata }>(
   "../assets/avatar.png",
@@ -199,8 +198,7 @@ const contacts = [
       </div>
     </section>
 
-    <AiChatWidget />
-
+  
     <section class="about-closing" data-reveal="content">
       <p>
         以上大概就是宛瑜啦～如果你也喜欢这个小窝的温柔，欢迎去

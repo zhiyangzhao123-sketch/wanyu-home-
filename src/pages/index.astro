@@ -3,6 +3,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import Hero from "../components/Hero.astro";
 import ProfileCard from "../components/ProfileCard.astro";
 import MusicPlayerCard from "../components/MusicPlayerCard.astro";
+import AiChatWidget from "../components/AiChatWidget.astro";
 import ThoughtsStrip from "../components/ThoughtsStrip.astro";
 import ArticleCompactList from "../components/ArticleCompactList.astro";
 import GalleryPreview from "../components/GalleryPreview.astro";
@@ -16,6 +17,7 @@ import GuestbookPreview from "../components/GuestbookPreview.astro";
     <aside class="home-dashboard__sidebar">
       <ProfileCard />
       <MusicPlayerCard />
+      <AiChatWidget />
     </aside>
 
     <div class="home-dashboard__main">
@@ -85,5 +87,15 @@ import GuestbookPreview from "../components/GuestbookPreview.astro";
   .home-dashboard__sidecards {
     display: grid;
     gap: 1rem;
+  }
+
+  /* 聊天在 310px 侧栏里：内边距收紧，消息区矮一些 */
+  :global(.home-dashboard__sidebar .ai-chat) {
+    margin-bottom: 0;
+    padding: 1.25rem;
+  }
+
+  :global(.home-dashboard__sidebar .ai-chat__messages) {
+    max-height: 240px;
   }
 </style>
