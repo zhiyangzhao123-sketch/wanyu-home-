@@ -41,7 +41,7 @@
 
   /* Layout */
   --width-content: 1400px;
-  --width-reading: 760px;
+  --width-reading: 700px;
   --spacing-section-y: 80px;
   --spacing-section-y-lg: 120px;
   --spacing-card-gap: 24px;
@@ -51,8 +51,8 @@
   --radius-image: 20px;
 
   /* Shadows */
-  --shadow-card: 0 2px 12px rgb(91 81 72 / 6%);
-  --shadow-card-hover: 0 6px 24px rgb(91 81 72 / 10%);
+  --shadow-card: 0 1px 2px rgb(91 81 72 / 4%), 0 10px 24px -14px rgb(91 81 72 / 10%);
+  --shadow-card-hover: 0 1px 2px rgb(91 81 72 / 5%), 0 16px 32px -16px rgb(91 81 72 / 14%);
 
   /* Motion：减速到位的曲线，不用浏览器默认的 ease / linear
      参考 landing-page-design 的动效基准与 amicro 的极简做法 */
@@ -83,7 +83,11 @@
     color: var(--color-text-primary);
     font-family: var(--font-body);
     font-size: 17px;
-    line-height: 1.8;
+    line-height: 1.85;
+    letter-spacing: 0.01em;
+    /* 中文标点不再占满一格，行首行尾的标点允许悬挂 */
+    text-spacing-trim: space-all;
+    hanging-punctuation: allow-end;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -105,16 +109,43 @@
   }
 
   h1 {
-    font-size: 34px;
+    font-size: clamp(2rem, 1.55rem + 1.9vw, 2.9rem);
+    letter-spacing: 0.015em;
   }
 
   h2 {
-    font-size: 28px;
+    font-size: clamp(1.5rem, 1.3rem + 0.9vw, 1.9rem);
+    letter-spacing: 0.012em;
+  }
+
+  h3 {
+    font-size: clamp(1.15rem, 1.05rem + 0.45vw, 1.35rem);
   }
 
   :lang(en),
   .font-english {
     font-family: var(--font-english);
+  }
+
+  a {
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.22em;
+    text-decoration-color: color-mix(in srgb, var(--color-brand-strong) 40%, transparent);
+  }
+
+  time,
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  hr {
+    border: 0;
+    height: 1px;
+    background-color: var(--color-divider);
+  }
+
+  li::marker {
+    color: var(--color-brand-strong);
   }
 
   ::selection {
@@ -136,6 +167,7 @@
 @layer components {
   .card {
     background-color: var(--color-surface);
+    border: 1px solid color-mix(in srgb, var(--color-divider) 70%, transparent);
     border-radius: var(--radius-card-lg);
     box-shadow: var(--shadow-card);
     transition:
