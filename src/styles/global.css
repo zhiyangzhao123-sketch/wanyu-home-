@@ -53,6 +53,10 @@
   /* Shadows */
   --shadow-card: 0 2px 12px rgb(91 81 72 / 6%);
   --shadow-card-hover: 0 6px 24px rgb(91 81 72 / 10%);
+
+  /* Motion：减速到位的曲线，不用浏览器默认的 ease / linear
+     参考 landing-page-design 的动效基准与 amicro 的极简做法 */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @layer base {
@@ -119,14 +123,24 @@
   }
 }
 
+@layer base {
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+  }
+
+  p, li, figcaption {
+    text-wrap: pretty;
+  }
+}
+
 @layer components {
   .card {
     background-color: var(--color-surface);
     border-radius: var(--radius-card-lg);
     box-shadow: var(--shadow-card);
     transition:
-      transform 0.3s ease,
-      box-shadow 0.3s ease;
+      transform 320ms var(--ease-out-soft),
+      box-shadow 320ms var(--ease-out-soft);
   }
 
   .card:hover {
@@ -164,10 +178,10 @@
 
   .js [data-reveal] {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(32px);
     transition:
-      opacity 600ms ease,
-      transform 600ms ease;
+      opacity 700ms var(--ease-out-soft),
+      transform 700ms var(--ease-out-soft);
     transition-delay: var(--reveal-delay, 0ms);
   }
 
@@ -189,7 +203,7 @@
     font-size: 0.9rem;
     text-decoration: none;
     transform: translateY(-300%);
-    transition: transform 0.2s ease;
+    transition: transform 200ms var(--ease-out-soft);
   }
 
   .skip-link:focus-visible {
@@ -207,6 +221,15 @@
       opacity: 1;
       transform: none;
       transition: none;
+    }
+
+    .card,
+    .skip-link {
+      transition: none;
+    }
+
+    .card:hover {
+      transform: none;
     }
   }
 }
