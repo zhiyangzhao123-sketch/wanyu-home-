@@ -7,7 +7,7 @@ const blog = defineCollection({
     title: z.string(),
     description: z.string(),
     pubDate: z.coerce.date(),
-    category: z.enum(["日常", "学习日记"]),
+    category: z.enum(["日常", "学习日记", "随笔"]),
     cover: z.string().optional(),
     draft: z.boolean().default(false),
     pinned: z.boolean().optional().default(false),

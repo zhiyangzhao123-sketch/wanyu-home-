@@ -18,7 +18,7 @@ export function formatShortDate(date: Date): string {
   });
 }
 
-export type BlogCategory = "日常" | "学习日记";
+export type BlogCategory = "日常" | "学习日记" | "随笔";
 
 export function getCategoryTint(category: BlogCategory | string): string {
   switch (category) {
@@ -26,6 +26,8 @@ export function getCategoryTint(category: BlogCategory | string): string {
       return "cat-life";
     case "学习日记":
       return "cat-study";
+    case "随笔":
+      return "cat-work";
     default:
       return "cat-work";
   }

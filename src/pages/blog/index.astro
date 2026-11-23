@@ -11,7 +11,7 @@ const allPosts = sortBlogPosts(
   (await getCollection("blog")).filter((entry) => !entry.data.draft),
 );
 
-const filters = ["全部", "日常", "学习日记"] as const;
+const filters = ["全部", "日常", "学习日记", "随笔"] as const;
 ---
 
 <BaseLayout
