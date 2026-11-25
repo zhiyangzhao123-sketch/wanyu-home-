@@ -22,7 +22,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
       <p class="ch__result" data-result hidden></p>
 
+      <div class="ch__tray ch__tray--black" data-tray-black aria-label="白方吃掉的子"></div>
+
       <div class="ch__board" data-board></div>
+
+      <div class="ch__tray ch__tray--white" data-tray-white aria-label="黑方吃掉的子"></div>
 
       <div class="ch__actions">
         <button type="button" class="ch__btn" data-undo>悔棋</button>
@@ -41,6 +45,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   <script>
     import { Chess } from "chess.js";
     import { bestMove } from "../../lib/chess-ai.js";
+    import { pieceSvg } from "../../lib/chess-pieces.js";
 
     // 用实心字形再上色：比空心字形在浅色格子上更清楚
     const GLYPH: Record<string, string> = {
@@ -56,6 +61,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     const undoBtn = document.querySelector("[data-undo]") as HTMLButtonElement;
     const newBtn = document.querySelector("[data-new]") as HTMLButtonElement;
     const diffBtn = document.querySelector("[data-diff]") as HTMLButtonElement;
+    const trayWEl = document.querySelector("[data-tray-white]") as HTMLElement;
+    const trayBEl = document.querySelector("[data-tray-black]") as HTMLElement;
 
     let game = new Chess();
     let selected: string | null = null;
@@ -64,6 +71,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     let busy = false;
     let result = "";
     let difficulty = 1;
+    let lastMove: { from: string; to: string } | null = null;
+    let checkSquare: string | null = null;
+    let capturedW: string[] = []; // 被白方吃掉的（即黑子）
+    let capturedB: string[] = [];
+
 
     function note(text: string) {
       noteEl.textContent = text;
@@ -83,11 +95,14 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           cell.dataset.square = sq;
 
           if (piece) {
-            const span = document.createElement("span");
-            span.className = "ch__piece " + (piece.color === "w" ? "is-white" : "is-black");
-            span.textContent = GLYPH[piece.type] ?? "?";
-            cell.appendChild(span);
+            const wrap = document.createElement("span");
+            wrap.className = "ch__piece " + (piece.color === "w" ? "is-white" : "is-black");
+            wrap.innerHTML = pieceSvg(piece.type, piece.color);
+            cell.appendChild(wrap);
           }
+
+          if (lastMove && (lastMove.from === sq || lastMove.to === sq)) cell.classList.add("is-last");
+          if (checkSquare === sq) cell.classList.add("is-check");
 
           if (selected === sq) cell.classList.add("is-selected");
           if (targets.some((t) => t.to === sq)) {
@@ -105,6 +120,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       turnEl.textContent = over ? "本局结束" : game.turn() === "w" ? "白方走" : "黑方走";
       infoEl.textContent = game.inCheck() && !over ? "被将军" : "";
       diffBtn.textContent = "难度：" + ["简单", "普通", "困难"][difficulty];
+      trayWEl.innerHTML = capturedW.map((t) => pieceSvg(t, "b", 22)).join("");
+      trayBEl.innerHTML = capturedB.map((t) => pieceSvg(t, "w", 22)).join("");
       if (result) {
         resultEl.hidden = false;
         resultEl.textContent = result;
@@ -144,6 +161,21 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       return false;
     }
 
+    function updateHints() {
+      // 将军时把被将的王标出来
+      checkSquare = null;
+      if (game.inCheck()) {
+        const turn = game.turn();
+        const board = game.board();
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            const sq = board[r][c];
+            if (sq && sq.type === "k" && sq.color === turn) checkSquare = FILES[c] + (8 - r);
+          }
+        }
+      }
+    }
+
     function playMove(from: string, to: string) {
       // 升变：这里统一升后（更复杂的选择以后再说）
       const needsPromotion =
@@ -151,6 +183,13 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       try {
         const move = game.move({ from, to, promotion: needsPromotion ? "q" : undefined });
         if (needsPromotion) note("兵到底线，自动升后");
+        lastMove = { from, to };
+        if (move.captured) {
+          // 谁吃的就记到谁那边
+          if (move.color === "w") capturedW.push(move.captured);
+          else capturedB.push(move.captured);
+        }
+        updateHints();
         return move;
       } catch {
         return null;
@@ -172,7 +211,10 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           checkEnd();
           return;
         }
-        game.move(move);
+        const played = game.move(move);
+        lastMove = { from: played.from, to: played.to };
+        if (played.captured) capturedB.push(played.captured);
+        updateHints();
         selected = null;
         targets = [];
         if (!checkEnd()) render();
@@ -204,6 +246,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           render();
           return;
         }
+        render();          // 先把自己这一步画出来，别等电脑想完
         if (checkEnd()) return;
         aiTurn();
         return;
@@ -220,6 +263,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       game.undo();
       over = false;
       result = "";
+      lastMove = null;
+      checkSquare = null;
+      capturedW = [];
+      capturedB = [];
+      updateHints();
       selected = null;
       targets = [];
       render();
@@ -231,6 +279,10 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       over = false;
       busy = false;
       result = "";
+      lastMove = null;
+      checkSquare = null;
+      capturedW = [];
+      capturedB = [];
       selected = null;
       targets = [];
       render();
@@ -335,21 +387,30 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   .ch__piece {
     position: relative;
     z-index: 2;
-    font-size: 84%;
-    line-height: 1;
-    user-select: none;
+    display: grid;
+    place-items: center;
+    width: 96%;
+    height: 96%;
+    pointer-events: none;
   }
 
-  .ch__piece.is-white {
-    color: #fdfaf3;
-    -webkit-text-stroke: 1.4px #4a3d2e;
-    text-shadow: 0 1px 1px rgb(0 0 0 / 35%);
+  .ch__piece svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    filter: drop-shadow(0 1px 1px rgb(0 0 0 / 22%));
   }
 
-  .ch__piece.is-black {
-    color: #241f19;
-    -webkit-text-stroke: 1px #100d09;
-    text-shadow: 0 1px 1px rgb(0 0 0 / 30%);
+  .ch__sq.is-last {
+    box-shadow: inset 0 0 0 999px rgb(196 158 74 / 26%);
+  }
+
+  .ch__sq.is-check {
+    box-shadow: inset 0 0 0 999px rgb(170 45 35 / 32%);
+  }
+
+  .ch__sq.is-selected {
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, #2f6f4f 85%, transparent), inset 0 0 0 999px rgb(47 111 79 / 14%);
   }
 
   .ch__sq.is-selected {
@@ -393,6 +454,21 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     content: attr(data-rank);
     top: 2px;
     left: 4px;
+  }
+
+  .ch__tray {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem;
+    min-height: 1.7rem;
+    align-items: center;
+    color: var(--color-text-secondary);
+  }
+
+  .ch__tray svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    display: block;
   }
 
   .ch__actions {
