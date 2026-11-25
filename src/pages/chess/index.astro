@@ -1,0 +1,436 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="下一盘国际象棋 | 宛瑜的小窝"
+  description="国际象棋，你执白先走，对手是电脑。规则用 chess.js：易位、吃过路兵、升变、逼和都按标准判定。"
+>
+  <div class="ch container-content">
+    <header class="ch__header">
+      <h1 class="ch__title">下一盘国际象棋</h1>
+      <p class="ch__lead">
+        你执白，先走。点棋子会亮出能走的位置，再点一下就走。
+      </p>
+    </header>
+
+    <div class="ch__panel">
+      <div class="ch__status">
+        <span class="ch__turn" data-turn>白方走</span>
+        <span class="ch__info" data-info></span>
+      </div>
+
+      <p class="ch__result" data-result hidden></p>
+
+      <div class="ch__board" data-board></div>
+
+      <div class="ch__actions">
+        <button type="button" class="ch__btn" data-undo>悔棋</button>
+        <button type="button" class="ch__btn ch__btn--ghost" data-new>新一局</button>
+        <button type="button" class="ch__btn ch__btn--ghost" data-diff>难度：普通</button>
+      </div>
+
+      <p class="ch__note" data-note aria-live="polite"></p>
+    </div>
+
+    <p class="ch__more">
+      还有<a href="/xiangqi/">中国象棋</a>、<a href="/weiqi/">围棋</a>、<a href="/gobang/">五子棋</a>。 ← <a href="/">回首页</a>
+    </p>
+  </div>
+
+  <script>
+    import { Chess } from "chess.js";
+    import { bestMove } from "../../lib/chess-ai.js";
+
+    // 用实心字形再上色：比空心字形在浅色格子上更清楚
+    const GLYPH: Record<string, string> = {
+      k: "♚", q: "♛", r: "♜", b: "♝", n: "♞", p: "♟",
+    };
+    const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
+
+    const boardEl = document.querySelector("[data-board]") as HTMLElement;
+    const turnEl = document.querySelector("[data-turn]") as HTMLElement;
+    const infoEl = document.querySelector("[data-info]") as HTMLElement;
+    const resultEl = document.querySelector("[data-result]") as HTMLElement;
+    const noteEl = document.querySelector("[data-note]") as HTMLElement;
+    const undoBtn = document.querySelector("[data-undo]") as HTMLButtonElement;
+    const newBtn = document.querySelector("[data-new]") as HTMLButtonElement;
+    const diffBtn = document.querySelector("[data-diff]") as HTMLButtonElement;
+
+    let game = new Chess();
+    let selected: string | null = null;
+    let targets: { to: string; capture: boolean }[] = [];
+    let over = false;
+    let busy = false;
+    let result = "";
+    let difficulty = 1;
+
+    function note(text: string) {
+      noteEl.textContent = text;
+      if (text) window.setTimeout(() => { if (noteEl.textContent === text) noteEl.textContent = ""; }, 2400);
+    }
+
+    function render() {
+      boardEl.innerHTML = "";
+      const board = game.board(); // 8 行，从第 8 横排开始
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const sq = FILES[c] + (8 - r);
+          const piece = board[r][c];
+          const cell = document.createElement("button");
+          cell.type = "button";
+          cell.className = "ch__sq " + ((r + c) % 2 === 0 ? "is-light" : "is-dark");
+          cell.dataset.square = sq;
+
+          if (piece) {
+            const span = document.createElement("span");
+            span.className = "ch__piece " + (piece.color === "w" ? "is-white" : "is-black");
+            span.textContent = GLYPH[piece.type] ?? "?";
+            cell.appendChild(span);
+          }
+
+          if (selected === sq) cell.classList.add("is-selected");
+          if (targets.some((t) => t.to === sq)) {
+            cell.classList.add(targets.find((t) => t.to === sq)!.capture ? "is-capture" : "is-target");
+          }
+
+          // 边上的坐标
+          if (r === 7) cell.dataset.file = FILES[c];
+          if (c === 0) cell.dataset.rank = String(8 - r);
+
+          boardEl.appendChild(cell);
+        }
+      }
+
+      turnEl.textContent = over ? "本局结束" : game.turn() === "w" ? "白方走" : "黑方走";
+      infoEl.textContent = game.inCheck() && !over ? "被将军" : "";
+      diffBtn.textContent = "难度：" + ["简单", "普通", "困难"][difficulty];
+      if (result) {
+        resultEl.hidden = false;
+        resultEl.textContent = result;
+      } else {
+        resultEl.hidden = true;
+        resultEl.textContent = "";
+      }
+    }
+
+    function finish(text: string) {
+      over = true;
+      result = text;
+      render();
+    }
+
+    function checkEnd() {
+      if (game.isCheckmate()) {
+        finish("将死 —— " + (game.turn() === "w" ? "黑方胜" : "白方胜"));
+        return true;
+      }
+      if (game.isStalemate()) {
+        finish("逼和：白方无子可动，和棋");
+        return true;
+      }
+      if (game.isInsufficientMaterial()) {
+        finish("子力不足，和棋");
+        return true;
+      }
+      if (game.isThreefoldRepetition()) {
+        finish("三次重复局面，和棋");
+        return true;
+      }
+      if (game.isDraw()) {
+        finish("和棋（五十手规则或其他和棋情形）");
+        return true;
+      }
+      return false;
+    }
+
+    function playMove(from: string, to: string) {
+      // 升变：这里统一升后（更复杂的选择以后再说）
+      const needsPromotion =
+        game.get(from)?.type === "p" && (to[1] === "8" || to[1] === "1");
+      try {
+        const move = game.move({ from, to, promotion: needsPromotion ? "q" : undefined });
+        if (needsPromotion) note("兵到底线，自动升后");
+        return move;
+      } catch {
+        return null;
+      }
+    }
+
+    function aiTurn() {
+      busy = true;
+      turnEl.textContent = "电脑在算…";
+      const cfg =
+        difficulty === 0 ? { depth: 1, timeMs: 400, randomness: 300 } :
+        difficulty === 1 ? { depth: 2, timeMs: 900, randomness: 30 } :
+        { depth: 3, timeMs: 1800, randomness: 0 };
+
+      window.setTimeout(() => {
+        const move = bestMove(game.fen(), cfg);
+        busy = false;
+        if (!move) {
+          checkEnd();
+          return;
+        }
+        game.move(move);
+        selected = null;
+        targets = [];
+        if (!checkEnd()) render();
+      }, 140);
+    }
+
+    boardEl.addEventListener("click", (e) => {
+      if (over || busy || game.turn() !== "w") return;
+      const cell = (e.target as HTMLElement).closest<HTMLButtonElement>(".ch__sq");
+      if (!cell) return;
+      const sq = cell.dataset.square!;
+      const piece = game.get(sq as any);
+
+      if (piece && piece.color === "w") {
+        selected = sq;
+        targets = game
+          .moves({ square: sq as any, verbose: true })
+          .map((m: any) => ({ to: m.to, capture: !!m.captured }));
+        render();
+        return;
+      }
+
+      if (selected && targets.some((t) => t.to === sq)) {
+        const move = playMove(selected, sq);
+        selected = null;
+        targets = [];
+        if (!move) {
+          note("这一步走不了");
+          render();
+          return;
+        }
+        if (checkEnd()) return;
+        aiTurn();
+        return;
+      }
+
+      selected = null;
+      targets = [];
+      render();
+    });
+
+    undoBtn.addEventListener("click", () => {
+      if (busy) return;
+      game.undo();
+      game.undo();
+      over = false;
+      result = "";
+      selected = null;
+      targets = [];
+      render();
+      note("退回去了");
+    });
+
+    newBtn.addEventListener("click", () => {
+      game = new Chess();
+      over = false;
+      busy = false;
+      result = "";
+      selected = null;
+      targets = [];
+      render();
+      note("新的一局");
+    });
+
+    diffBtn.addEventListener("click", () => {
+      difficulty = (difficulty + 1) % 3;
+      render();
+      note("难度：" + ["简单", "普通", "困难"][difficulty]);
+    });
+
+    render();
+  </script>
+</BaseLayout>
+
+<style is:global>
+  .ch {
+    padding-block: 3rem 5rem;
+  }
+
+  .ch__header {
+    max-width: 34rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .ch__title {
+    margin: 0 0 0.6rem;
+  }
+
+  .ch__lead {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+  }
+
+  .ch__panel {
+    max-width: 32rem;
+    padding: 1.25rem;
+    border: 1px solid color-mix(in srgb, var(--color-divider) 70%, transparent);
+    border-radius: var(--radius-card-lg);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .ch__status {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.9rem;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+  }
+
+  .ch__turn {
+    color: var(--color-text-primary);
+    font-weight: 700;
+  }
+
+  .ch__result {
+    margin: 0 0 0.9rem;
+    padding: 0.55rem 0.9rem;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--color-brand) 28%, transparent);
+    color: var(--color-text-primary);
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .ch__result[hidden] {
+    display: none;
+  }
+
+  .ch__board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 0 6px #d9c39b, 0 2px 8px rgb(60 40 20 / 22%);
+  }
+
+  .ch__sq {
+    position: relative;
+    padding: 0;
+    border: 0;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    font-size: clamp(1.1rem, 4.2vw, 2rem);
+    line-height: 1;
+  }
+
+  .ch__sq.is-light {
+    background-color: #f0e2c6;
+  }
+
+  .ch__sq.is-dark {
+    background-color: #b08a5c;
+  }
+
+  .ch__piece {
+    position: relative;
+    z-index: 2;
+    font-size: 84%;
+    line-height: 1;
+    user-select: none;
+  }
+
+  .ch__piece.is-white {
+    color: #fdfaf3;
+    -webkit-text-stroke: 1.4px #4a3d2e;
+    text-shadow: 0 1px 1px rgb(0 0 0 / 35%);
+  }
+
+  .ch__piece.is-black {
+    color: #241f19;
+    -webkit-text-stroke: 1px #100d09;
+    text-shadow: 0 1px 1px rgb(0 0 0 / 30%);
+  }
+
+  .ch__sq.is-selected {
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, #2f6f4f 80%, transparent);
+  }
+
+  .ch__sq.is-target::after {
+    content: "";
+    position: absolute;
+    width: 26%;
+    height: 26%;
+    border-radius: 50%;
+    background: color-mix(in srgb, #2f6f4f 55%, transparent);
+  }
+
+  .ch__sq.is-capture::after {
+    content: "";
+    position: absolute;
+    inset: 6%;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, #a8332a 70%, transparent);
+  }
+
+  /* 坐标 */
+  .ch__sq[data-file]::before,
+  .ch__sq[data-rank]::before {
+    position: absolute;
+    font-size: 0.55rem;
+    color: rgb(60 45 30 / 55%);
+    line-height: 1;
+    font-family: var(--font-english);
+  }
+
+  .ch__sq[data-file]::before {
+    content: attr(data-file);
+    bottom: 2px;
+    right: 4px;
+  }
+
+  .ch__sq[data-rank]::before {
+    content: attr(data-rank);
+    top: 2px;
+    left: 4px;
+  }
+
+  .ch__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1.1rem;
+  }
+
+  .ch__btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--color-brand-strong);
+    border-radius: 999px;
+    background-color: var(--color-brand-strong);
+    color: var(--color-surface);
+    font-family: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+  }
+
+  .ch__btn:active {
+    transform: scale(0.97);
+  }
+
+  .ch__btn--ghost {
+    background-color: transparent;
+    color: var(--color-brand-strong);
+  }
+
+  .ch__note {
+    min-height: 1.4rem;
+    margin: 0.8rem 0 0;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+  }
+
+  .ch__more {
+    margin-top: 2rem;
+    font-size: 0.92rem;
+  }
+</style>
