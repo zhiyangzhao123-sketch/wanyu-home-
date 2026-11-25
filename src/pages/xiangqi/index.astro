@@ -20,7 +20,10 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         <span class="xq__info" data-info></span>
       </div>
 
-      <div class="xq__board" data-board></div>
+      <div class="xq__board" data-board>
+        <svg class="xq__svg" data-svg viewBox="-0.45 -0.45 9.9 10.9" aria-hidden="true"></svg>
+        <div class="xq__grid" data-grid></div>
+      </div>
 
       <div class="xq__actions">
         <button type="button" class="xq__btn" data-undo>悔棋</button>
@@ -47,13 +50,14 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       ROWS,
     } from "../../lib/xiangqi.js";
 
-    // 棋子显示：红用简体，黑用繁体（象棋惯例是红简黑繁）
+    // 红简黑繁，象棋惯例
     const GLYPH: Record<number, string> = {
       1: "帅", 2: "仕", 3: "相", 4: "马", 5: "车", 6: "炮", 7: "兵",
       9: "将", 10: "士", 11: "象", 12: "馬", 13: "車", 14: "砲", 15: "卒",
     };
 
-    const boardEl = document.querySelector("[data-board]") as HTMLElement;
+    const svgEl = document.querySelector("[data-svg]") as unknown as SVGElement;
+    const gridEl = document.querySelector("[data-grid]") as HTMLElement;
     const turnEl = document.querySelector("[data-turn]") as HTMLElement;
     const infoEl = document.querySelector("[data-info]") as HTMLElement;
     const noteEl = document.querySelector("[data-note]") as HTMLElement;
@@ -62,22 +66,103 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     const diffBtn = document.querySelector("[data-diff]") as HTMLButtonElement;
 
     let board = createBoard();
-    let side = 1; // 红先
+    let side = 1;
     let selected: number | null = null;
     let targets: number[] = [];
     let history: { move: { from: number; to: number }; captured: number }[] = [];
     let over = false;
     let busy = false;
-    let difficulty = 1; // 0 简单 / 1 普通 / 2 困难
+    let difficulty = 1;
+
+    const LINE = "#6b5236";
 
     function note(text: string) {
       noteEl.textContent = text;
       if (text) window.setTimeout(() => { if (noteEl.textContent === text) noteEl.textContent = ""; }, 2400);
     }
 
+    /** 棋盘线：十道横线、九道竖线（河界处断开）、两座九宫斜线、外框、楚河汉界。 */
+    function drawBoard() {
+      const out: string[] = [];
+      const left = 0.5;
+      const right = COLS - 0.5;
+      const top = 0.5;
+      const bottom = ROWS - 0.5;
+
+      // 底：木纹色
+      out.push(`<rect x="-0.45" y="-0.45" width="9.9" height="10.9" fill="#e9d9bb"/>`);
+      out.push(
+        `<rect x="-0.45" y="-0.45" width="9.9" height="10.9" fill="url(#woodGrain)" opacity="0.5"/>`,
+      );
+
+      // 横线
+      for (let r = 0; r < ROWS; r++) {
+        const y = r + 0.5;
+        out.push(`<line x1="${left}" y1="${y}" x2="${right}" y2="${y}" stroke="${LINE}" stroke-width="0.045" stroke-linecap="square"/>`);
+      }
+
+      // 竖线：最外两条通到底，其余在河界断开
+      for (let c = 0; c < COLS; c++) {
+        const x = c + 0.5;
+        if (c === 0 || c === COLS - 1) {
+          out.push(`<line x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="${LINE}" stroke-width="0.045"/>`);
+        } else {
+          out.push(`<line x1="${x}" y1="${top}" x2="${x}" y2="4.5" stroke="${LINE}" stroke-width="0.045"/>`);
+          out.push(`<line x1="${x}" y1="5.5" x2="${x}" y2="${bottom}" stroke="${LINE}" stroke-width="0.045"/>`);
+        }
+      }
+
+      // 九宫斜线
+      const palaces = [
+        [0.5, 0.5, 3.5, 2.5], [3.5, 0.5, 5.5, 2.5],
+        [3.5, 7.5, 5.5, 9.5], [5.5, 7.5, 3.5, 9.5],
+      ];
+      for (const [x1, y1, x2, y2] of palaces) {
+        out.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${LINE}" stroke-width="0.045"/>`);
+      }
+
+      // 外框（双线，粗一点，像真棋盘）
+      out.push(`<rect x="0.34" y="0.34" width="${right - left + 0.32}" height="${bottom - top + 0.32}" fill="none" stroke="${LINE}" stroke-width="0.08"/>`);
+
+      // 兵、炮的定位小刻痕
+      const ticks: [number, number][] = [
+        [7, 0], [7, 2], [7, 4], [7, 6], [7, 8], [2, 1], [2, 7],
+      ];
+      for (const [r, c] of ticks) {
+        const x = c + 0.5;
+        const y = r + 0.5;
+        const o = 0.1;
+        const len = 0.12;
+        for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+          out.push(
+            `<path d="M ${x + dx * o} ${y + dy * (o + len)} L ${x + dx * o} ${y + dy * o} L ${x + dx * (o + len)} ${y + dy * o}" fill="none" stroke="${LINE}" stroke-width="0.035"/>`,
+          );
+        }
+      }
+
+      // 楚河 · 漢界
+      out.push(
+        `<text x="2.2" y="5.05" text-anchor="middle" font-size="0.72" letter-spacing="0.22" fill="#7a5c38" opacity="0.85" style="font-family: var(--font-heading)">楚 河</text>`,
+      );
+      out.push(
+        `<text x="6.8" y="5.05" text-anchor="middle" font-size="0.72" letter-spacing="0.22" fill="#7a5c38" opacity="0.85" style="font-family: var(--font-heading)">漢 界</text>`,
+      );
+
+      const defs = `<defs>
+        <pattern id="woodGrain" width="0.9" height="0.9" patternUnits="userSpaceOnUse">
+          <path d="M0 0.2 Q0.45 0.05 0.9 0.25" stroke="#c9ab7d" stroke-width="0.02" fill="none" opacity="0.35"/>
+          <path d="M0 0.55 Q0.45 0.4 0.9 0.6" stroke="#c9ab7d" stroke-width="0.02" fill="none" opacity="0.25"/>
+          <path d="M0 0.85 Q0.45 0.7 0.9 0.9" stroke="#c9ab7d" stroke-width="0.02" fill="none" opacity="0.2"/>
+        </pattern>
+      </defs>`;
+
+      svgEl.innerHTML = defs + out.join("");
+    }
+
     function render() {
-      boardEl.style.setProperty("--cols", String(COLS));
-      boardEl.innerHTML = "";
+      drawBoard();
+      gridEl.style.setProperty("--cols", String(COLS));
+      gridEl.innerHTML = "";
       for (let i = 0; i < ROWS * COLS; i++) {
         const cell = document.createElement("button");
         cell.type = "button";
@@ -91,12 +176,12 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           cell.appendChild(span);
         }
         if (selected === i) cell.classList.add("is-selected");
-        if (targets.includes(i)) cell.classList.add("is-target");
-        boardEl.appendChild(cell);
+        if (targets.includes(i)) cell.classList.add(piece ? "is-capture" : "is-target");
+        cell.setAttribute("aria-label", piece ? GLYPH[piece] : "空");
+        gridEl.appendChild(cell);
       }
       turnEl.textContent = over ? "本局结束" : side === 1 ? "红方走" : "黑方走";
-      const cap = history.length;
-      infoEl.textContent = cap ? "已走 " + cap + " 手" : "";
+      infoEl.textContent = history.length ? "已走 " + history.length + " 手" : "";
       diffBtn.textContent = "难度：" + ["简单", "普通", "困难"][difficulty];
     }
 
@@ -110,10 +195,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       side = side === 1 ? 2 : 1;
       selected = null;
       targets = [];
-
       const moves = legalMoves(board, side);
       if (!moves.length) {
-        // 象棋里没有“困毙和棋”：无棋可走就是输
         finish((side === 1 ? "红方" : "黑方") + "无棋可走，" + (side === 1 ? "黑方" : "红方") + "胜");
         return false;
       }
@@ -139,19 +222,16 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         }
         const captured = doMove(board, move);
         history.push({ move, captured });
-        if (afterMove() && !over) {
-          // 轮到红方，玩家自己下
-        }
+        afterMove();
       }, 160);
     }
 
-    boardEl.addEventListener("click", (e) => {
+    gridEl.addEventListener("click", (e) => {
       if (over || busy || side !== 1) return;
       const cell = (e.target as HTMLElement).closest<HTMLButtonElement>(".xq__cell");
       if (!cell) return;
       const pos = Number(cell.dataset.pos);
 
-      // 点自己的子：选中并亮出可走的点
       if (board[pos] && colorOf(board[pos]) === 1) {
         selected = pos;
         targets = legalMoves(board, 1).filter((m) => m.from === pos).map((m) => m.to);
@@ -159,7 +239,6 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         return;
       }
 
-      // 点到可走的点：走
       if (selected != null && targets.includes(pos)) {
         const move = { from: selected, to: pos };
         const captured = doMove(board, move);
@@ -168,7 +247,6 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         return;
       }
 
-      // 点了别处：取消选中
       selected = null;
       targets = [];
       render();
@@ -176,7 +254,6 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
     undoBtn.addEventListener("click", () => {
       if (busy) return;
-      // 人机模式退两步
       const steps = history.length >= 2 ? 2 : 1;
       for (let k = 0; k < steps; k++) {
         const last = history.pop();
@@ -257,12 +334,28 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   }
 
   .xq__board {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 9 / 10;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgb(107 82 54 / 22%), 0 1px 3px rgb(0 0 0 / 10%);
+  }
+
+  .xq__svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .xq__grid {
+    position: absolute;
+    inset: 0;
     display: grid;
     grid-template-columns: repeat(var(--cols, 9), 1fr);
-    aspect-ratio: 9 / 10;
-    background-color: #e8d9bd;
-    border-radius: 10px;
-    overflow: hidden;
+    grid-template-rows: repeat(10, 1fr);
   }
 
   .xq__cell {
@@ -273,66 +366,75 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     cursor: pointer;
     display: grid;
     place-items: center;
+    touch-action: manipulation;
   }
 
-  /* 棋盘线：每格画右、下两条，最后一列/行不画 */
-  .xq__cell::before,
-  .xq__cell::after {
-    content: "";
-    position: absolute;
-    background-color: #6b5b45;
-    opacity: 0.5;
-  }
-
-  .xq__cell::before {
-    left: 0;
-    right: 0;
-    top: 50%;
-    height: 1px;
-  }
-
-  .xq__cell::after {
-    top: 0;
-    bottom: 0;
-    left: 50%;
-    width: 1px;
-  }
-
+  /* 棋子：双圈鼓面，楷体字 */
   .xq__piece {
     position: relative;
-    z-index: 2;
     display: grid;
     place-items: center;
-    width: 82%;
-    height: 82%;
+    width: 88%;
+    height: 88%;
     border-radius: 50%;
     font-family: var(--font-heading);
-    font-size: clamp(0.85rem, 2.6vw, 1.3rem);
+    font-weight: 700;
+    font-size: clamp(0.8rem, 2.5vw, 1.25rem);
     line-height: 1;
-    background: #fbf6ec;
-    border: 1px solid #cdb894;
-    box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
+    background:
+      radial-gradient(circle at 32% 28%, #fffdf7 0%, #f6ecd8 45%, #e4d2b0 100%);
+    box-shadow:
+      inset 0 0 0 1.5px #b99b6d,
+      inset 0 0 0 4px #fffaf0,
+      inset 0 0 0 5px #cdb28a,
+      0 2px 3px rgb(60 40 20 / 28%),
+      0 1px 0 rgb(255 255 255 / 60%) inset;
+    transition: transform 140ms var(--ease-out-soft);
   }
 
   .xq__piece.is-red {
-    color: #a8332a;
+    color: #ab2f22;
+    text-shadow: 0 1px 0 rgb(255 255 255 / 45%);
   }
 
   .xq__piece.is-black {
-    color: #2b2b2b;
+    color: #24211d;
+    text-shadow: 0 1px 0 rgb(255 255 255 / 45%);
   }
 
-  .xq__cell.is-selected {
-    background: color-mix(in srgb, var(--color-brand) 30%, transparent);
+  .xq__cell:active .xq__piece {
+    transform: scale(0.94);
   }
 
-  .xq__cell.is-target::before,
+  .xq__cell.is-selected .xq__piece {
+    box-shadow:
+      inset 0 0 0 1.5px #b99b6d,
+      inset 0 0 0 4px #fffaf0,
+      inset 0 0 0 5px #cdb28a,
+      0 0 0 2px color-mix(in srgb, var(--color-brand-strong) 75%, transparent),
+      0 2px 6px rgb(60 40 20 / 35%);
+  }
+
+  /* 可走点：空点画小圆点，有子画红圈 */
   .xq__cell.is-target::after {
-    opacity: 0.5;
+    content: "";
+    width: 22%;
+    height: 22%;
+    border-radius: 50%;
+    background: color-mix(in srgb, #a8332a 60%, transparent);
   }
 
-  .xq__cell.is-target {
-    box-shadow: inset 0 0 0 2px color-mix(in srgb, #b4553f 55%, transparent);
+  .xq__cell.is-capture::after {
+    content: "";
+    position: absolute;
+    inset: 8%;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, #a8332a 65%, transparent);
+  }
+
+  .xq__cell:focus-visible {
+    outline: 2px solid var(--color-brand-strong);
+    outline-offset: -2px;
     border-radius: 4px;
   }
 
@@ -352,6 +454,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     font-family: inherit;
     font-size: 0.88rem;
     cursor: pointer;
+    transition: transform 160ms var(--ease-out-soft);
   }
 
   .xq__btn:active {
@@ -373,5 +476,12 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   .xq__more {
     margin-top: 2rem;
     font-size: 0.92rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .xq__piece,
+    .xq__btn {
+      transition: none;
+    }
   }
 </style>
