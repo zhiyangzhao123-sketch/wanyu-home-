@@ -20,6 +20,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         <span class="xq__info" data-info></span>
       </div>
 
+      <p class="xq__result" data-result hidden></p>
+
       <div class="xq__board" data-board>
         <svg class="xq__svg" data-svg viewBox="0 0 9 10" aria-hidden="true"></svg>
         <div class="xq__grid" data-grid></div>
@@ -61,6 +63,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     const turnEl = document.querySelector("[data-turn]") as HTMLElement;
     const infoEl = document.querySelector("[data-info]") as HTMLElement;
     const noteEl = document.querySelector("[data-note]") as HTMLElement;
+    const resultEl = document.querySelector("[data-result]") as HTMLElement;
     const undoBtn = document.querySelector("[data-undo]") as HTMLButtonElement;
     const newBtn = document.querySelector("[data-new]") as HTMLButtonElement;
     const diffBtn = document.querySelector("[data-diff]") as HTMLButtonElement;
@@ -73,6 +76,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     let over = false;
     let busy = false;
     let difficulty = 1;
+    let result = ""; // 结束原因，常驻显示
 
     const LINE = "#6b5236";
 
@@ -183,10 +187,18 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       turnEl.textContent = over ? "本局结束" : side === 1 ? "红方走" : "黑方走";
       infoEl.textContent = history.length ? "已走 " + history.length + " 手" : "";
       diffBtn.textContent = "难度：" + ["简单", "普通", "困难"][difficulty];
+      if (result) {
+        resultEl.hidden = false;
+        resultEl.textContent = result;
+      } else {
+        resultEl.hidden = true;
+        resultEl.textContent = "";
+      }
     }
 
-    function finish(text: string) {
+    function finish(text: string, reason = "") {
       over = true;
+      result = reason ? text + "（" + reason + "）" : text;
       render();
       note(text);
     }
@@ -197,7 +209,10 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       targets = [];
       const moves = legalMoves(board, side);
       if (!moves.length) {
-        finish((side === 1 ? "红方" : "黑方") + "无棋可走，" + (side === 1 ? "黑方" : "红方") + "胜");
+        const loser = side === 1 ? "红方" : "黑方";
+        const winner = side === 1 ? "黑方" : "红方";
+        const reason = isChecked(board, side) ? "将死" : "困毙，无棋可走";
+        finish(winner + "胜", loser + reason);
         return false;
       }
       if (isChecked(board, side)) note((side === 1 ? "红方" : "黑方") + "被将军");
@@ -217,7 +232,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         const move = bestMove(board, 2, cfg);
         busy = false;
         if (!move) {
-          finish("黑方无棋可走，红方胜");
+          finish("红方胜", "黑方" + (isChecked(board, 2) ? "将死" : "困毙，无棋可走"));
           return;
         }
         const captured = doMove(board, move);
@@ -276,6 +291,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       history = [];
       over = false;
       busy = false;
+      result = "";
       render();
       note("新的一局");
     });
@@ -331,6 +347,20 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   .xq__turn {
     color: var(--color-text-primary);
     font-weight: 700;
+  }
+
+  .xq__result {
+    margin: 0 0 0.9rem;
+    padding: 0.55rem 0.9rem;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--color-brand) 28%, transparent);
+    color: var(--color-text-primary);
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .xq__result[hidden] {
+    display: none;
   }
 
   .xq__board {
