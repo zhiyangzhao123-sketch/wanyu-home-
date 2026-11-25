@@ -1,0 +1,410 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="下一盘斗兽棋 | 宛瑜的小窝"
+  description="斗兽棋：象狮虎豹狼狗猫鼠，鼠能吃象，狮虎能跳河。你执红，目标是把子送进对方兽穴。"
+>
+  <div class="js container-content">
+    <header class="js__header">
+      <h1 class="js__title">下一盘斗兽棋</h1>
+      <p class="js__lead">
+        你执红，先走。点自己的子看能走哪儿；把子走进对方兽穴就赢。
+      </p>
+    </header>
+
+    <div class="js__panel">
+      <div class="js__status">
+        <span class="js__turn" data-turn>红方走</span>
+        <span class="js__info" data-info></span>
+      </div>
+
+      <p class="js__result" data-result hidden></p>
+
+      <div class="js__board" data-board></div>
+
+      <div class="js__actions">
+        <button type="button" class="js__btn" data-undo>悔棋</button>
+        <button type="button" class="js__btn js__btn--ghost" data-new>新一局</button>
+        <button type="button" class="js__btn js__btn--ghost" data-diff>难度：普通</button>
+      </div>
+
+      <p class="js__note" data-note aria-live="polite"></p>
+    </div>
+
+    <p class="js__rules">
+      等级：象 &gt; 狮 &gt; 虎 &gt; 豹 &gt; 狼 &gt; 狗 &gt; 猫 &gt; 鼠，但鼠能吃象、象吃不了鼠。
+      只有鼠能下水，水里和岸上互不相吃；狮、虎可以跳河，河里有鼠就跳不过去。
+      站在对方陷阱里的子等级算 0，进对方兽穴即胜。
+    </p>
+
+    <p class="js__more">
+      还有<a href="/reversi/">黑白棋</a>、<a href="/junqi/">军棋</a>、<a href="/xiangqi/">中国象棋</a>、<a href="/chess/">国际象棋</a>、<a href="/weiqi/">围棋</a>、<a href="/gobang/">五子棋</a>。 ← <a href="/">回首页</a>
+    </p>
+  </div>
+
+  <script>
+    import {
+      createGame, move, legalMoves, movesFrom, isWater, DEN, TRAPS,
+      COLS, ROWS, CELLS, RED, BLUE, sideName,
+    } from "../../lib/jungle.js";
+    import { chooseMove } from "../../lib/jungle.js";
+
+    const boardEl = document.querySelector("[data-board]") as HTMLElement;
+    const turnEl = document.querySelector("[data-turn]") as HTMLElement;
+    const infoEl = document.querySelector("[data-info]") as HTMLElement;
+    const resultEl = document.querySelector("[data-result]") as HTMLElement;
+    const noteEl = document.querySelector("[data-note]") as HTMLElement;
+    const undoBtn = document.querySelector("[data-undo]") as HTMLButtonElement;
+    const newBtn = document.querySelector("[data-new]") as HTMLButtonElement;
+    const diffBtn = document.querySelector("[data-diff]") as HTMLButtonElement;
+
+    let state = createGame();
+    let selected: number | null = null;
+    let targets: number[] = [];
+    let history: any[] = [];
+    let busy = false;
+    let difficulty = 1;
+
+    function note(text: string) {
+      noteEl.textContent = text;
+      if (text) window.setTimeout(() => { if (noteEl.textContent === text) noteEl.textContent = ""; }, 2400);
+    }
+
+    function render() {
+      boardEl.style.setProperty("--cols", String(COLS));
+      boardEl.innerHTML = "";
+      for (let i = 0; i < CELLS; i++) {
+        const p = state.board[i];
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = "js__cell";
+        cell.dataset.pos = String(i);
+
+        if (isWater(i)) cell.classList.add("is-water");
+        if (TRAPS[RED].includes(i) || TRAPS[BLUE].includes(i)) cell.classList.add("is-trap");
+        if (i === DEN[RED]) cell.classList.add("is-den-red");
+        if (i === DEN[BLUE]) cell.classList.add("is-den-blue");
+
+        if (p) {
+          const piece = document.createElement("span");
+          piece.className = "js__piece " + (p.side === RED ? "is-red" : "is-blue");
+          piece.textContent = p.name;
+          cell.appendChild(piece);
+        } else if (i === DEN[RED] || i === DEN[BLUE]) {
+          const hole = document.createElement("span");
+          hole.className = "js__denhole";
+          cell.appendChild(hole);
+        }
+
+        if (selected === i) cell.classList.add("is-selected");
+        if (targets.includes(i)) cell.classList.add("is-target");
+        if (state.lastMove === i) cell.classList.add("is-last");
+        boardEl.appendChild(cell);
+      }
+
+      turnEl.textContent = state.winner ? "本局结束" : sideName(state.turn) + "方走";
+      infoEl.textContent = "剩 " + state.board.filter(Boolean).length + " 枚";
+      diffBtn.textContent = "难度：" + ["简单", "普通", "困难"][difficulty];
+      if (state.winner) {
+        resultEl.hidden = false;
+        resultEl.textContent = sideName(state.winner) + "方胜（" + state.reason + "）";
+      } else {
+        resultEl.hidden = true;
+        resultEl.textContent = "";
+      }
+    }
+
+    function apply(next: any) {
+      if (next.error) { note(next.error); return false; }
+      history.push(state);
+      state = next;
+      selected = null;
+      targets = [];
+      render();
+      return true;
+    }
+
+    function aiTurn() {
+      if (state.winner) return;
+      busy = true;
+      turnEl.textContent = "电脑在算…";
+      const cfg =
+        difficulty === 0 ? { depth: 1, timeMs: 300, randomness: 220 } :
+        difficulty === 1 ? { depth: 2, timeMs: 800, randomness: 40 } :
+        { depth: 3, timeMs: 1500, randomness: 0 };
+      window.setTimeout(() => {
+        const mv = chooseMove(state, BLUE, cfg);
+        busy = false;
+        if (!mv) { render(); return; }
+        apply(move(state, mv.from, mv.to));
+      }, 170);
+    }
+
+    boardEl.addEventListener("click", (e) => {
+      if (busy || state.winner || state.turn !== RED) return;
+      const cell = (e.target as HTMLElement).closest<HTMLButtonElement>(".js__cell");
+      if (!cell) return;
+      const pos = Number(cell.dataset.pos);
+      const piece = state.board[pos];
+
+      if (piece && piece.side === RED) {
+        selected = pos;
+        targets = movesFrom(state, pos);
+        render();
+        return;
+      }
+
+      if (selected != null && targets.includes(pos)) {
+        if (apply(move(state, selected, pos))) aiTurn();
+        return;
+      }
+
+      selected = null;
+      targets = [];
+      render();
+    });
+
+    undoBtn.addEventListener("click", () => {
+      if (busy) return;
+      const steps = history.length >= 2 ? 2 : 1;
+      for (let i = 0; i < steps; i++) {
+        const prev = history.pop();
+        if (!prev) break;
+        state = prev;
+      }
+      selected = null;
+      targets = [];
+      render();
+      note("退回去了");
+    });
+
+    newBtn.addEventListener("click", () => {
+      state = createGame();
+      history = [];
+      selected = null;
+      targets = [];
+      busy = false;
+      render();
+      note("新的一局");
+    });
+
+    diffBtn.addEventListener("click", () => {
+      difficulty = (difficulty + 1) % 3;
+      render();
+      note("难度：" + ["简单", "普通", "困难"][difficulty]);
+    });
+
+    render();
+  </script>
+</BaseLayout>
+
+<style is:global>
+  .js {
+    padding-block: 3rem 5rem;
+  }
+
+  .js__header {
+    max-width: 34rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .js__title {
+    margin: 0 0 0.6rem;
+  }
+
+  .js__lead {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+  }
+
+  .js__panel {
+    max-width: 26rem;
+    padding: 1.1rem;
+    border: 1px solid color-mix(in srgb, var(--color-divider) 70%, transparent);
+    border-radius: var(--radius-card-lg);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .js__status {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.8rem;
+    color: var(--color-text-secondary);
+    font-size: 0.88rem;
+  }
+
+  .js__turn {
+    color: var(--color-text-primary);
+    font-weight: 700;
+  }
+
+  .js__result {
+    margin: 0 0 0.8rem;
+    padding: 0.5rem 0.85rem;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--color-brand) 28%, transparent);
+    color: var(--color-text-primary);
+    font-size: 0.92rem;
+    font-weight: 700;
+  }
+
+  .js__result[hidden] {
+    display: none;
+  }
+
+  .js__board {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 7), minmax(0, 1fr));
+    grid-template-rows: repeat(9, minmax(0, 1fr));
+    aspect-ratio: 7 / 9;
+    gap: 2px;
+    padding: 8px;
+    border-radius: 10px;
+    background: linear-gradient(160deg, #e5d2ae 0%, #d6bd94 100%);
+    box-shadow:
+      inset 0 0 0 2px rgb(120 90 55 / 40%),
+      0 2px 6px rgb(80 55 30 / 20%);
+  }
+
+  .js__cell {
+    position: relative;
+    padding: 0;
+    border: 1px solid rgb(120 96 64 / 26%);
+    background: #f2e6cd;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* 河 */
+  .js__cell.is-water {
+    background: linear-gradient(180deg, #b7d3e4 0%, #9cc1d8 100%);
+    border-color: rgb(70 110 140 / 30%);
+  }
+
+  /* 陷阱：虚线框 */
+  .js__cell.is-trap {
+    background-image: repeating-linear-gradient(45deg, rgb(180 85 63 / 16%) 0 6px, transparent 6px 12px);
+  }
+
+  .js__cell.is-trap::after {
+    content: "";
+    position: absolute;
+    inset: 14%;
+    border: 1.5px dashed rgb(180 85 63 / 55%);
+    border-radius: 3px;
+    pointer-events: none;
+  }
+
+  /* 兽穴 */
+  .js__cell.is-den-red {
+    background: #f6ddd8;
+  }
+
+  .js__cell.is-den-blue {
+    background: #dde7f2;
+  }
+
+  .js__denhole {
+    width: 52%;
+    height: 52%;
+    border-radius: 50%;
+    border: 2px solid rgb(120 90 60 / 35%);
+    box-shadow: inset 0 2px 4px rgb(90 60 30 / 28%);
+  }
+
+  .js__piece {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 88%;
+    height: 88%;
+    border-radius: 50%;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: clamp(0.7rem, 2.6vw, 1.05rem);
+    line-height: 1;
+  }
+
+  .js__piece.is-red {
+    background: linear-gradient(180deg, #fdeee8 0%, #f4d5cb 100%);
+    color: #9c2b21;
+    border: 1.5px solid #b34334;
+    box-shadow: 0 1px 2px rgb(80 40 30 / 28%);
+  }
+
+  .js__piece.is-blue {
+    background: linear-gradient(180deg, #e9f0f8 0%, #d2e0ef 100%);
+    color: #234a70;
+    border: 1.5px solid #3f6389;
+    box-shadow: 0 1px 2px rgb(30 50 80 / 28%);
+  }
+
+  .js__cell.is-selected .js__piece {
+    box-shadow: 0 0 0 2px #2f6f4f, 0 2px 5px rgb(50 60 40 / 35%);
+  }
+
+  .js__cell.is-target::before {
+    content: "";
+    position: absolute;
+    inset: 34%;
+    border-radius: 50%;
+    background: color-mix(in srgb, #2f6f4f 55%, transparent);
+    z-index: 1;
+  }
+
+  .js__cell.is-last {
+    box-shadow: inset 0 0 0 2px rgb(214 165 60 / 70%);
+  }
+
+  .js__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 1rem;
+  }
+
+  .js__btn {
+    padding: 0.45rem 0.95rem;
+    border: 1px solid var(--color-brand-strong);
+    border-radius: 999px;
+    background-color: var(--color-brand-strong);
+    color: var(--color-surface);
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .js__btn--ghost {
+    background-color: transparent;
+    color: var(--color-brand-strong);
+  }
+
+  .js__note {
+    min-height: 1.3rem;
+    margin: 0.7rem 0 0;
+    color: var(--color-text-secondary);
+    font-size: 0.83rem;
+  }
+
+  .js__rules {
+    max-width: 34rem;
+    margin-top: 1.5rem;
+    color: var(--color-text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.8;
+  }
+
+  .js__more {
+    margin-top: 1.2rem;
+    font-size: 0.9rem;
+  }
+</style>
