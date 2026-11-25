@@ -221,12 +221,11 @@ function emptyRegion(state, pos) {
  * 能提就提、别填自己的空、别往自己厚势里塞、多扩地。
  * 用启发式打分，几百次浮点运算就够，手机上也不会卡。
  */
-export function chooseMove(state, rand = Math.random) {
+export function rankMoves(state, rand = Math.random) {
   const { size, grid, turn } = state;
   const enemy = turn === BLACK ? WHITE : BLACK;
   const center = (size - 1) / 2;
-  let best = null;
-  let bestScore = -Infinity;
+  const scored = [];
 
   // 先看自己有没有只剩一口气的棋——这些点必须优先去救
   const rescue = new Set();
@@ -320,10 +319,15 @@ export function chooseMove(state, rand = Math.random) {
       (crowded ? 9 : 0) +              // 别往自己厚势里塞
       rand() * 0.6;
 
-    if (score > bestScore) {
-      bestScore = score;
-      best = pos;
-    }
+    scored.push({ pos, score });
   }
-  return best;
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored;
+}
+
+/** 只要最好的一手（给简单难度用）。 */
+export function chooseMove(state, rand = Math.random) {
+  const ranked = rankMoves(state, rand);
+  return ranked.length ? ranked[0].pos : null;
 }

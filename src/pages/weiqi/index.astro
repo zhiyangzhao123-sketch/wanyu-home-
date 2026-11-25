@@ -30,6 +30,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         <button type="button" class="weiqi__btn" data-pass>停一手</button>
         <button type="button" class="weiqi__btn weiqi__btn--ghost" data-new>新一局</button>
         <button type="button" class="weiqi__btn weiqi__btn--ghost" data-mode>人机</button>
+        <button type="button" class="weiqi__btn weiqi__btn--ghost" data-diff>难度：普通</button>
       </div>
 
       <p class="weiqi__note" data-note aria-live="polite"></p>
@@ -41,7 +42,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   </div>
 
   <script>
-    import { createBoard, play, pass, chooseMove, scoreArea, BLACK, WHITE, EMPTY } from "../../lib/go-engine.js";
+    import { createBoard, play, pass, rankMoves, scoreArea, BLACK, WHITE, EMPTY } from "../../lib/go-engine.js";
+    import { chooseMoveMCTS } from "../../lib/go-mcts.js";
 
     const svgEl = document.querySelector("[data-svg]") as unknown as SVGElement;
     const gridEl = document.querySelector("[data-grid]") as HTMLElement;
@@ -53,6 +55,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     const passBtn = document.querySelector("[data-pass]") as HTMLButtonElement;
     const newBtn = document.querySelector("[data-new]") as HTMLButtonElement;
     const modeBtn = document.querySelector("[data-mode]") as HTMLButtonElement;
+    const diffBtn = document.querySelector("[data-diff]") as HTMLButtonElement;
 
     const SIZE = 9;
     // 九路：四角星位 + 天元
@@ -67,6 +70,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     let over = false;
     let busy = false;
     let vsComputer = true;
+    let difficulty = 1; // 0 简单 / 1 普通 / 2 困难
 
     function note(text: string) {
       noteEl.textContent = text;
@@ -198,10 +202,34 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
     function scheduleAI() {
       busy = true;
-      window.setTimeout(() => {
-        const pos = chooseMove(state);
+      turnEl.textContent = "电脑在算…";
+      const level = difficulty;
+      const budget =
+        level === 0
+          ? { topK: 0, playouts: 0, timeMs: 0 }
+          : level === 1
+            ? { topK: 8, playouts: 260, timeMs: 700 }
+            : { topK: 10, playouts: 900, timeMs: 2200 };
+
+      window.setTimeout(async () => {
+        let pos: number | null = null;
+
+        if (budget.playouts === 0) {
+          // 简单：只用启发式，立刻出招
+          const ranked = rankMoves(state);
+          pos = ranked.length ? ranked[0].pos : null;
+        } else {
+          const ranked = rankMoves(state);
+          const candidates = ranked.slice(0, budget.topK).map((x) => x.pos);
+          pos = await chooseMoveMCTS(Uint8Array.from(state.grid), SIZE, WHITE, {
+            playouts: budget.playouts,
+            timeMs: budget.timeMs,
+            candidates,
+          });
+        }
+
         busy = false;
-        if (pos == null) {
+        if (pos == null || pos === -1) {
           stack.push(state);
           state = pass(state);
           render();
@@ -209,8 +237,14 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           return;
         }
         doMove(pos, true);
-      }, 240);
+      }, 180);
     }
+
+    diffBtn.addEventListener("click", () => {
+      difficulty = (difficulty + 1) % 3;
+      outputDifficulty();
+      note("难度：" + ["简单", "普通", "困难"][difficulty]);
+    });
 
     gridEl.addEventListener("click", (e) => {
       const cell = (e.target as HTMLElement).closest<HTMLButtonElement>(".weiqi__point");
@@ -251,6 +285,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       if (vsComputer && state.turn === WHITE) scheduleAI();
     });
 
+    function outputDifficulty() {
+      diffBtn.textContent = "难度：" + ["简单", "普通", "困难"][difficulty];
+    }
+
+    outputDifficulty();
     render();
   </script>
 </BaseLayout>
