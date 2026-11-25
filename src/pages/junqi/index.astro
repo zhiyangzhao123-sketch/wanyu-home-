@@ -81,16 +81,22 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         cell.dataset.pos = String(i);
 
         if (p) {
+          const holder = document.createElement("span");
+          holder.className = "jq__piece";
           if (p.revealed) {
+            holder.classList.add("is-face", p.side === SIDE_RED ? "is-red" : "is-blue");
             const tag = document.createElement("span");
-            tag.className = "jq__tag " + (p.side === SIDE_RED ? "is-red" : "is-blue");
+            tag.className = "jq__tag";
             tag.textContent = p.kind;
-            cell.appendChild(tag);
+            holder.appendChild(tag);
           } else {
-            const back = document.createElement("span");
-            back.className = "jq__back";
-            cell.appendChild(back);
+            holder.classList.add("is-back");
+            const mark = document.createElement("span");
+            mark.className = "jq__mark";
+            mark.textContent = "军";
+            holder.appendChild(mark);
           }
+          cell.appendChild(holder);
         }
 
         if (selected === i) cell.classList.add("is-selected");
@@ -267,71 +273,111 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   .jq__board {
     display: grid;
     grid-template-columns: repeat(var(--cols, 5), minmax(0, 1fr));
-    gap: 3px;
-    padding: 6px;
-    background: #d9c7a5;
-    border-radius: 8px;
+    gap: 5px;
+    padding: 10px;
+    border-radius: 10px;
+    background:
+      linear-gradient(160deg, #e3cfa8 0%, #d8c095 45%, #cdb284 100%);
+    box-shadow:
+      inset 0 0 0 1px rgb(120 90 55 / 35%),
+      inset 0 0 24px rgb(120 90 55 / 18%),
+      0 1px 3px rgb(80 55 30 / 18%);
   }
 
   .jq__cell {
     position: relative;
     aspect-ratio: 1;
     padding: 0;
-    border: 1px solid rgb(120 96 64 / 25%);
-    border-radius: 4px;
-    background: #f3e7ce;
+    border: 0;
+    background: transparent;
     cursor: pointer;
     display: grid;
     place-items: center;
-    overflow: hidden;
+    overflow: visible;
     min-width: 0;
   }
 
-  .jq__back {
-    width: 88%;
-    height: 88%;
-    border-radius: 3px;
+  /* 棋子块：所有尺寸都相对格子，绝不参与布局 */
+  .jq__piece {
+    position: absolute;
+    inset: 6%;
+    display: grid;
+    place-items: center;
+    border-radius: 14%;
+    transition: transform 140ms var(--ease-out-soft), box-shadow 140ms var(--ease-out-soft);
+  }
+
+  /* 扣着的棋子：深色背面 + 一枚小字 */
+  .jq__piece.is-back {
     background:
-      repeating-linear-gradient(45deg, #8a6b45 0 4px, #7a5d3b 4px 8px);
-    box-shadow: inset 0 0 0 2px #f3e7ce;
+      radial-gradient(circle at 30% 25%, #9a3b32 0%, #7d2b24 55%, #5f1d18 100%);
+    box-shadow:
+      inset 0 0 0 1px rgb(255 220 210 / 22%),
+      inset 0 -2px 4px rgb(0 0 0 / 28%),
+      0 1px 2px rgb(60 30 20 / 30%);
+  }
+
+  .jq__mark {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: clamp(0.55rem, 2.2vw, 0.85rem);
+    color: rgb(255 232 224 / 75%);
+    letter-spacing: 0.05em;
+    pointer-events: none;
+  }
+
+  /* 明棋：米白圆角块，红蓝两色描边 */
+  .jq__piece.is-face {
+    background: linear-gradient(180deg, #fdf9f0 0%, #f2e7d2 100%);
+    box-shadow:
+      inset 0 0 0 1.5px rgb(255 255 255 / 60%),
+      0 1px 2px rgb(80 55 30 / 28%);
+  }
+
+  .jq__piece.is-face.is-red {
+    border: 1.5px solid #b0503f;
+  }
+
+  .jq__piece.is-face.is-blue {
+    border: 1.5px solid #4a6d92;
   }
 
   .jq__tag {
-    display: grid;
-    place-items: center;
-    width: 92%;
-    height: 92%;
-    border-radius: 3px;
     font-family: var(--font-heading);
     font-weight: 700;
-    font-size: clamp(0.5rem, 2.1vw, 0.78rem);
-    line-height: 1.1;
+    font-size: clamp(0.5rem, 2vw, 0.76rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
     text-align: center;
-    letter-spacing: -0.02em;
+    pointer-events: none;
   }
 
-  .jq__tag.is-red {
-    background: #f7e6e2;
+  .jq__piece.is-red .jq__tag {
     color: #a8332a;
-    box-shadow: inset 0 0 0 1px #c98a80;
   }
 
-  .jq__tag.is-blue {
-    background: #e4ebf3;
+  .jq__piece.is-blue .jq__tag {
     color: #2c4c6e;
-    box-shadow: inset 0 0 0 1px #7f9bb8;
   }
 
-  .jq__cell.is-selected {
-    box-shadow: inset 0 0 0 2px #2f6f4f;
+  .jq__cell.is-selected .jq__piece {
+    box-shadow:
+      0 0 0 2px #2f6f4f,
+      inset 0 0 0 1.5px rgb(255 255 255 / 60%),
+      0 2px 6px rgb(60 40 20 / 35%);
+    transform: translateY(-1px);
   }
 
   .jq__cell.is-target::after {
     content: "";
     position: absolute;
-    inset: 26%;
+    inset: 30%;
     border-radius: 50%;
     background: color-mix(in srgb, #2f6f4f 55%, transparent);
+  }
+
+  .jq__cell.is-hidden:hover .jq__piece {
+    transform: translateY(-1px);
   }
 
   .jq__actions {
