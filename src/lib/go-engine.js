@@ -228,6 +228,18 @@ export function chooseMove(state, rand = Math.random) {
   let best = null;
   let bestScore = -Infinity;
 
+  // 先看自己有没有只剩一口气的棋——这些点必须优先去救
+  const rescue = new Set();
+  const seenOwn = new Set();
+  for (let i = 0; i < grid.length; i++) {
+    if (grid[i] !== turn || seenOwn.has(i)) continue;
+    const g = groupAt(grid, size, i);
+    for (const s of g.stones) seenOwn.add(s);
+    if (g.liberties.size === 1) {
+      for (const lib of g.liberties) rescue.add(lib);
+    }
+  }
+
   for (let pos = 0; pos < grid.length; pos++) {
     if (grid[pos] !== EMPTY) continue;
     const legal = isLegal(state, pos);
@@ -299,7 +311,9 @@ export function chooseMove(state, rand = Math.random) {
       openSpace * 1.5 +                // 周围越空，越像在扩地
       lineBonus +
       centerBonus +
-      edgePenalty -
+      edgePenalty +
+      (rescue.has(pos) ? 34 : 0) +     // 自己有棋只剩一口气，先救
+      (rescue.size > 0 && !rescue.has(pos) ? -6 : 0) -
       (selfAtari ? 24 : 0) -
       (riskyAfterCapture ? 6 : 0) -
       (fillsOwnTerritory ? 30 : 0) -   // 绝不填自己的空
