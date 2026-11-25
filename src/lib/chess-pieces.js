@@ -10,5 +10,5 @@ export function pieceSvg(type, color, size = 100) {
   const tone = color === "w" ? "lt" : "dt";
   const src = `/pieces/chess-${type}${tone}.svg`;
   const px = Math.round(size);
-  return `<img class="ch__img" src="${src}" width="${px}" height="${px}" alt="" loading="lazy" decoding="async">`;
+  return `<img class="ch__img" src="${src}" width="${px}" height="${px}" alt="" decoding="sync">`;
 }
