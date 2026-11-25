@@ -194,9 +194,31 @@ function isTrueEyePoint(state, pos, color) {
   return true;
 }
 
+/** 某个空点所在的空区，以及这块空区被哪些颜色贴着。 */
+function emptyRegion(state, pos) {
+  const { size, grid } = state;
+  const borders = new Set();
+  const seen = new Set([pos]);
+  const stack = [pos];
+  while (stack.length) {
+    const cur = stack.pop();
+    for (const nb of neighbors(size, cur)) {
+      if (grid[nb] === EMPTY) {
+        if (!seen.has(nb)) {
+          seen.add(nb);
+          stack.push(nb);
+        }
+      } else {
+        borders.add(grid[nb]);
+      }
+    }
+  }
+  return { points: seen, borders };
+}
+
 /**
  * 选一手棋。不追求棋力，只求“像在下一盘围棋”：
- * 能提就提、能打吃就打吃、别填自己的眼、别一上来就啃一线。
+ * 能提就提、别填自己的空、别往自己厚势里塞、多扩地。
  * 用启发式打分，几百次浮点运算就够，手机上也不会卡。
  */
 export function chooseMove(state, rand = Math.random) {
@@ -252,16 +274,36 @@ export function chooseMove(state, rand = Math.random) {
     // 提完对方之后自己也可能只剩一口气，对手下一手就能反提
     const riskyAfterCapture = ownLibs === 1 && captured > 0;
 
+    // ---- 地盘意识 ----
+    // 这一手会不会填进自己的空里：整个空区只被自己围住
+    const region = emptyRegion(state, pos);
+    const fillsOwnTerritory = region.borders.size === 1 && region.borders.has(turn);
+
+    // 扎堆：四邻全是自己的子，等于往自己厚势里塞
+    const ownNeighbors = neighbors(size, pos).filter((nb) => grid[nb] === turn).length;
+    const crowded = ownNeighbors >= 3;
+
+    // 开阔：周围空点多，才算在扩地
+    const openSpace = neighbors(size, pos).filter((nb) => grid[nb] === EMPTY).length;
+
+    // 三线与四线：九路上比较像样的着手位置
+    const line = Math.min(r, c, size - 1 - r, size - 1 - c) + 1;
+    const lineBonus = line === 3 ? 1.6 : line === 4 ? 0.9 : line === 2 ? 0.4 : 0;
+
     const score =
       captured * 18 +
-      atari * 5 +
+      atari * 2.4 +                    // 打吃不再是最重要的事，只有提子才算
       Math.min(ownLibs, 6) * 2.6 +
-      contact * 1.4 +
-      ownContact * 0.8 +
+      contact * 1.2 +
+      ownContact * (crowded ? 0.2 : 0.7) +
+      openSpace * 1.5 +                // 周围越空，越像在扩地
+      lineBonus +
       centerBonus +
       edgePenalty -
       (selfAtari ? 24 : 0) -
-      (riskyAfterCapture ? 6 : 0) +
+      (riskyAfterCapture ? 6 : 0) -
+      (fillsOwnTerritory ? 30 : 0) -   // 绝不填自己的空
+      (crowded ? 9 : 0) +              // 别往自己厚势里塞
       rand() * 0.6;
 
     if (score > bestScore) {
