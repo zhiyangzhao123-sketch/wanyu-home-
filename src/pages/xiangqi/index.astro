@@ -21,7 +21,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       </div>
 
       <div class="xq__board" data-board>
-        <svg class="xq__svg" data-svg viewBox="-0.45 -0.45 9.9 10.9" aria-hidden="true"></svg>
+        <svg class="xq__svg" data-svg viewBox="0 0 9 10" aria-hidden="true"></svg>
         <div class="xq__grid" data-grid></div>
       </div>
 
@@ -89,10 +89,10 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       const top = 0.5;
       const bottom = ROWS - 0.5;
 
-      // 底：木纹色
-      out.push(`<rect x="-0.45" y="-0.45" width="9.9" height="10.9" fill="#e9d9bb"/>`);
+      // 底：木纹色（铺满 9×10，和格子的均分严格对应）
+      out.push(`<rect x="0" y="0" width="9" height="10" fill="#e9d9bb"/>`);
       out.push(
-        `<rect x="-0.45" y="-0.45" width="9.9" height="10.9" fill="url(#woodGrain)" opacity="0.5"/>`,
+        `<rect x="0" y="0" width="9" height="10" fill="url(#woodGrain)" opacity="0.5"/>`,
       );
 
       // 横线
@@ -122,7 +122,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       }
 
       // 外框（双线，粗一点，像真棋盘）
-      out.push(`<rect x="0.34" y="0.34" width="${right - left + 0.32}" height="${bottom - top + 0.32}" fill="none" stroke="${LINE}" stroke-width="0.08"/>`);
+      out.push(`<rect x="0.3" y="0.3" width="${right - left + 0.4}" height="${bottom - top + 0.4}" fill="none" stroke="${LINE}" stroke-width="0.07"/>`);
 
       // 兵、炮的定位小刻痕
       const ticks: [number, number][] = [
