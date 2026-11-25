@@ -45,6 +45,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   ];
   const COLS = 8;
   const ROWS = 6;
+  const PAIRS = 16; // 32 张牌铺在 48 格里，留出 16 个空位当通道
   const PAD = 1; // 棋盘外一圈，路径可以从这里绕
 
   const boardEl = document.querySelector<HTMLElement>("[data-board]")!;
@@ -64,24 +65,38 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   let startedAt = 0;
   let timer: number | undefined;
 
-  function makeGrid() {
-    const pool: string[] = [];
-    for (const ch of CHARS) pool.push(ch, ch);
-    for (let i = pool.length - 1; i > 0; i--) {
+  function shuffle<T>(arr: T[]): T[] {
+    for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
+      [arr[i], arr[j]] = [arr[j], arr[i]];
     }
+    return arr;
+  }
+
+  function makeGrid() {
+    // 空棋盘
     grid = [];
-    let k = 0;
     for (let r = 0; r < ROWS + PAD * 2; r++) {
-      const row: (string | null)[] = [];
-      for (let c = 0; c < COLS + PAD * 2; c++) {
-        const inner = r >= PAD && r < ROWS + PAD && c >= PAD && c < COLS + PAD;
-        row.push(inner ? pool[k++] ?? null : null);
-      }
-      grid.push(row);
+      grid.push(new Array(COLS + PAD * 2).fill(null));
     }
-    remaining = pool.length / 2;
+
+    // 从 48 个内格里随机挑 32 个放牌，其余留空——空位才是路
+    const cells: { r: number; c: number }[] = [];
+    for (let r = PAD; r < ROWS + PAD; r++) {
+      for (let c = PAD; c < COLS + PAD; c++) cells.push({ r, c });
+    }
+    const chosen = shuffle(cells).slice(0, PAIRS * 2);
+    const chars: string[] = [];
+    for (let i = 0; i < PAIRS; i++) {
+      const ch = CHARS[i % CHARS.length];
+      chars.push(ch, ch);
+    }
+    shuffle(chars);
+    chosen.forEach((cell, i) => {
+      grid[cell.r][cell.c] = chars[i];
+    });
+
+    remaining = PAIRS;
   }
 
   function empty(r: number, c: number) {
@@ -156,7 +171,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     return null;
   }
 
-  function anyMove() {
+  /** 当前盘面上有多少对能连——判断“还能不能玩”比“能不能连”更有用。 */
+  function countMoves() {
     const cells: { r: number; c: number; ch: string }[] = [];
     for (let r = PAD; r < ROWS + PAD; r++) {
       for (let c = PAD; c < COLS + PAD; c++) {
@@ -164,12 +180,13 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         if (ch) cells.push({ r, c, ch });
       }
     }
+    let n = 0;
     for (let i = 0; i < cells.length; i++) {
       for (let j = i + 1; j < cells.length; j++) {
-        if (cells[i].ch === cells[j].ch && findPath(cells[i], cells[j])) return true;
+        if (cells[i].ch === cells[j].ch && findPath(cells[i], cells[j])) n += 1;
       }
     }
-    return false;
+    return n;
   }
 
   function shuffleBoard() {
@@ -189,7 +206,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       cells.forEach((cell, i) => {
         grid[cell.r][cell.c] = chars[i];
       });
-      if (anyMove()) return true;
+      if (countMoves() >= 2) return true;
     }
     // 极端情况：怎么洗都连不上（满盘时约 3.5% 的开局如此），直接重铺一局
     makeGrid();
@@ -313,7 +330,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       return;
     }
 
-    if (!anyMove()) {
+    if (countMoves() < 2) {
       shuffleBoard();
       render();
       note("没得连了，帮你洗了一次");
@@ -344,8 +361,13 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     render();
   });
 
+  // 发牌：开局至少 6 对能连，不够就重洗；洗完仍不够就重铺
+  const MIN_MOVES = 8;
   makeGrid();
-  if (!anyMove()) shuffleBoard();
+  for (let attempt = 0; attempt < 120 && countMoves() < MIN_MOVES; attempt++) {
+    shuffleBoard();
+  }
+  if (countMoves() < MIN_MOVES) shuffleBoard();
   render();
 </script>
 
