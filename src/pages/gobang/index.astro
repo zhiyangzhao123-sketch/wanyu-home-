@@ -1,0 +1,87 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="下一盘五子棋 | 宛瑜的小窝"
+  description="一个在浏览器里下五子棋的小游戏，你执黑先走，对手是电脑。游戏由 passer-by.com 制作，本站只借用。"
+>
+  <div class="gobang container-content">
+    <header class="gobang__header">
+      <h1 class="gobang__title">下一盘五子棋</h1>
+      <p class="gobang__lead">
+        黑子先手，你先走。电脑会算，别急着落子——它看得比你远一点。
+      </p>
+      <p class="gobang__hint">屏幕窄的话，棋盘可以左右滑。</p>
+    </header>
+
+    <div class="gobang__panel">
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <p class="gobang__credit">
+      游戏由 <a href="https://passer-by.com/gobang/" rel="noopener" target="_blank">passer-by.com</a>
+      制作（MIT 许可），本站只借用，没有改动它的代码。
+    </p>
+
+    <p class="gobang__back"><a href="/">← 回去看看别的</a></p>
+  </div>
+
+  <script is:inline src="/vendor/gobang.min.js"></script>
+</BaseLayout>
+
+<style>
+  .gobang {
+    padding-block: 3rem 5rem;
+  }
+
+  .gobang__header {
+    max-width: 34rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .gobang__title {
+    margin: 0 0 0.6rem;
+  }
+
+  .gobang__lead {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+  }
+
+  .gobang__panel {
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+    /* 棋盘是固定像素画的，缩放会让点击错位，所以窄屏改为横向滑动 */
+    overflow-x: auto;
+    border: 1px solid color-mix(in srgb, var(--color-divider) 70%, transparent);
+    border-radius: var(--radius-card-lg);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .gobang__panel canvas {
+    display: block;
+    border-radius: 10px;
+    flex: 0 0 auto;
+  }
+
+  .gobang__hint {
+    margin: 0.5rem 0 0;
+    color: var(--color-text-secondary);
+    font-size: 0.82rem;
+  }
+
+  .gobang__credit {
+    margin: 1.25rem 0 0;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+  }
+
+  .gobang__back {
+    margin-top: 2rem;
+    font-size: 0.92rem;
+  }
+</style>
