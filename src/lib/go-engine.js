@@ -247,14 +247,21 @@ export function chooseMove(state, rand = Math.random) {
       else if (grid[nb] === turn) ownContact += 1;
     }
 
+    // 自己送吃：落子后这块只剩一口气，而且没提到对方的子，等于白给
+    const selfAtari = ownLibs === 1 && captured === 0;
+    // 提完对方之后自己也可能只剩一口气，对手下一手就能反提
+    const riskyAfterCapture = ownLibs === 1 && captured > 0;
+
     const score =
       captured * 18 +
       atari * 5 +
-      Math.min(ownLibs, 5) * 1.2 +
+      Math.min(ownLibs, 6) * 2.6 +
       contact * 1.4 +
       ownContact * 0.8 +
       centerBonus +
-      edgePenalty +
+      edgePenalty -
+      (selfAtari ? 24 : 0) -
+      (riskyAfterCapture ? 6 : 0) +
       rand() * 0.6;
 
     if (score > bestScore) {
