@@ -20,7 +20,10 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         <span class="weiqi__caps">提子 黑 <strong data-cap-black>0</strong> · 白 <strong data-cap-white>0</strong></span>
       </div>
 
-      <div class="weiqi__board" data-board role="grid" aria-label="九路棋盘"></div>
+      <div class="weiqi__board" data-board>
+        <svg class="weiqi__svg" data-svg viewBox="-0.2 -0.2 9.4 9.4" aria-hidden="true"></svg>
+        <div class="weiqi__grid" data-grid></div>
+      </div>
 
       <div class="weiqi__actions">
         <button type="button" class="weiqi__btn" data-undo>悔棋</button>
@@ -40,54 +43,130 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   <script>
     import { createBoard, play, pass, chooseMove, scoreArea, BLACK, WHITE, EMPTY } from "../../lib/go-engine.js";
 
-    const boardEl = document.querySelector<HTMLElement>("[data-board]")!;
-    const turnEl = document.querySelector<HTMLElement>("[data-turn]")!;
-    const capBlackEl = document.querySelector<HTMLElement>("[data-cap-black]")!;
-    const capWhiteEl = document.querySelector<HTMLElement>("[data-cap-white]")!;
-    const noteEl = document.querySelector<HTMLElement>("[data-note]")!;
-    const undoBtn = document.querySelector<HTMLButtonElement>("[data-undo]")!;
-    const passBtn = document.querySelector<HTMLButtonElement>("[data-pass]")!;
-    const newBtn = document.querySelector<HTMLButtonElement>("[data-new]")!;
-    const modeBtn = document.querySelector<HTMLButtonElement>("[data-mode]")!;
+    const svgEl = document.querySelector("[data-svg]") as unknown as SVGElement;
+    const gridEl = document.querySelector("[data-grid]") as HTMLElement;
+    const turnEl = document.querySelector("[data-turn]") as HTMLElement;
+    const capBlackEl = document.querySelector("[data-cap-black]") as HTMLElement;
+    const capWhiteEl = document.querySelector("[data-cap-white]") as HTMLElement;
+    const noteEl = document.querySelector("[data-note]") as HTMLElement;
+    const undoBtn = document.querySelector("[data-undo]") as HTMLButtonElement;
+    const passBtn = document.querySelector("[data-pass]") as HTMLButtonElement;
+    const newBtn = document.querySelector("[data-new]") as HTMLButtonElement;
+    const modeBtn = document.querySelector("[data-mode]") as HTMLButtonElement;
 
     const SIZE = 9;
-    let vsComputer = true;
-    let stack: any[] = []; // 每一步的状态，用于悔棋
+    // 九路：四角星位 + 天元
+    const STARS: [number, number][] = [
+      [2, 2], [2, 6],
+      [6, 2], [6, 6],
+      [4, 4],
+    ];
+
     let state = createBoard(SIZE);
+    const stack: any[] = [];
     let over = false;
     let busy = false;
+    let vsComputer = true;
 
     function note(text: string) {
       noteEl.textContent = text;
-      if (text) window.setTimeout(() => { if (noteEl.textContent === text) noteEl.textContent = ""; }, 2200);
+      if (text) {
+        window.setTimeout(() => {
+          if (noteEl.textContent === text) noteEl.textContent = "";
+        }, 2200);
+      }
+    }
+
+    function line(x1: number, y1: number, x2: number, y2: number, w = 0.035) {
+      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#6b5b45" stroke-width="${w}" stroke-linecap="square"/>`;
+    }
+
+    function drawSvg() {
+      const n = SIZE;
+      const out: string[] = [];
+
+      out.push(`<rect x="-0.2" y="-0.2" width="${n + 0.4}" height="${n + 0.4}" fill="#e8d9bd"/>`);
+
+      // 九条横线、九条竖线，都画到最外圈交叉点为止
+      for (let i = 0; i < n; i++) {
+        const p = i + 0.5;
+        out.push(line(0.5, p, n - 0.5, p));
+        out.push(line(p, 0.5, p, n - 0.5));
+      }
+
+      // 封边：外圈加一条略粗的线
+      out.push(
+        `<rect x="0.5" y="0.5" width="${n - 1}" height="${n - 1}" fill="none" stroke="#6b5b45" stroke-width="0.06"/>`,
+      );
+
+      // 星位与天元
+      for (const [r, c] of STARS) {
+        out.push(`<circle cx="${c + 0.5}" cy="${r + 0.5}" r="0.105" fill="#6b5b45"/>`);
+      }
+
+      // 棋子
+      for (let i = 0; i < state.grid.length; i++) {
+        const v = state.grid[i];
+        if (!v) continue;
+        const cx = (i % n) + 0.5;
+        const cy = Math.floor(i / n) + 0.5;
+        const fill = v === BLACK ? "url(#stoneBlack)" : "url(#stoneWhite)";
+        const stroke = v === BLACK ? "#0b0b0b" : "#c3bdb2";
+        out.push(
+          `<circle cx="${cx}" cy="${cy}" r="0.44" fill="${fill}" stroke="${stroke}" stroke-width="0.02"/>`,
+        );
+      }
+
+      // 最后一手标记
+      const last = state.history[state.history.length - 1];
+      if (last != null && last >= 0 && state.grid[last]) {
+        const cx = (last % n) + 0.5;
+        const cy = Math.floor(last / n) + 0.5;
+        const stroke = state.grid[last] === BLACK ? "#f4f1ea" : "#33302c";
+        out.push(
+          `<circle cx="${cx}" cy="${cy}" r="0.13" fill="none" stroke="${stroke}" stroke-width="0.035"/>`,
+        );
+      }
+
+      // 打劫点
+      if (state.ko >= 0 && state.grid[state.ko] === EMPTY) {
+        const cx = (state.ko % n) + 0.5;
+        const cy = Math.floor(state.ko / n) + 0.5;
+        out.push(
+          `<rect x="${cx - 0.3}" y="${cy - 0.3}" width="0.6" height="0.6" fill="none" stroke="#b4553f" stroke-width="0.04" stroke-dasharray="0.08 0.06"/>`,
+        );
+      }
+
+      const defs =
+        `<defs>` +
+        `<radialGradient id="stoneBlack" cx="0.35" cy="0.32" r="0.8">` +
+        `<stop offset="0%" stop-color="#525252"/><stop offset="70%" stop-color="#101010"/>` +
+        `</radialGradient>` +
+        `<radialGradient id="stoneWhite" cx="0.35" cy="0.32" r="0.8">` +
+        `<stop offset="0%" stop-color="#ffffff"/><stop offset="78%" stop-color="#d6d1c7"/>` +
+        `</radialGradient>` +
+        `</defs>`;
+
+      svgEl.innerHTML = defs + out.join("");
     }
 
     function render() {
-      boardEl.style.setProperty("--n", String(SIZE));
-      boardEl.innerHTML = "";
+      drawSvg();
+      gridEl.style.setProperty("--n", String(SIZE));
+      gridEl.innerHTML = "";
       for (let i = 0; i < SIZE * SIZE; i++) {
         const cell = document.createElement("button");
         cell.type = "button";
         cell.className = "weiqi__point";
         cell.dataset.pos = String(i);
         const v = state.grid[i];
-        if (v === BLACK || v === WHITE) {
-          cell.classList.add(v === BLACK ? "has-black" : "has-white");
-          const stone = document.createElement("i");
-          stone.className = "weiqi__stone";
-          cell.appendChild(stone);
-        } else if (i === state.ko) {
-          cell.classList.add("is-ko");
-        }
-        if (state.history[state.history.length - 1] === i) cell.classList.add("is-last");
-        cell.setAttribute("aria-label", `第 ${Math.floor(i / SIZE) + 1} 行第 ${(i % SIZE) + 1} 列${v ? (v === BLACK ? "，黑子" : "，白子") : "，空"}`);
-        boardEl.appendChild(cell);
+        cell.setAttribute(
+          "aria-label",
+          `第 ${Math.floor(i / SIZE) + 1} 行第 ${(i % SIZE) + 1} 列${v ? (v === BLACK ? "，黑子" : "，白子") : "，空"}`,
+        );
+        gridEl.appendChild(cell);
       }
-      turnEl.textContent = over
-        ? "本局结束"
-        : state.turn === BLACK
-          ? "轮到黑棋"
-          : "轮到白棋";
+      turnEl.textContent = over ? "本局结束" : state.turn === BLACK ? "轮到黑棋" : "轮到白棋";
       capBlackEl.textContent = String(state.captured[BLACK]);
       capWhiteEl.textContent = String(state.captured[WHITE]);
       modeBtn.textContent = vsComputer ? "人机" : "双人";
@@ -130,10 +209,10 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           return;
         }
         doMove(pos, true);
-      }, 260);
+      }, 240);
     }
 
-    boardEl.addEventListener("click", (e) => {
+    gridEl.addEventListener("click", (e) => {
       const cell = (e.target as HTMLElement).closest<HTMLButtonElement>(".weiqi__point");
       if (!cell) return;
       if (vsComputer && state.turn === WHITE) return;
@@ -141,11 +220,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     });
 
     undoBtn.addEventListener("click", () => {
-      // 人机模式下连退两步（电脑那一手也退掉）
       let steps = vsComputer && stack.length >= 2 ? 2 : 1;
-      while (steps-- > 0 && stack.length) {
-        state = stack.pop();
-      }
+      while (steps-- > 0 && stack.length) state = stack.pop();
       over = false;
       render();
       note("退回去了");
@@ -162,7 +238,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
     newBtn.addEventListener("click", () => {
       state = createBoard(SIZE);
-      stack = [];
+      stack.length = 0;
       over = false;
       render();
       note("新的一局");
@@ -229,80 +305,45 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   }
 
   .weiqi__board {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 10px;
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+
+  .weiqi__svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .weiqi__grid {
+    position: absolute;
+    inset: 0;
     display: grid;
     grid-template-columns: repeat(var(--n, 9), 1fr);
-    gap: 0;
-    aspect-ratio: 1;
-    background-color: #e8d9bd;
-    border-radius: 10px;
-    padding: 4px;
+    grid-template-rows: repeat(var(--n, 9), 1fr);
   }
 
   .weiqi__point {
-    position: relative;
     padding: 0;
     border: 0;
     background: none;
     cursor: pointer;
+    border-radius: 4px;
   }
 
-  /* 交叉线 */
-  .weiqi__point::before,
-  .weiqi__point::after {
-    content: "";
-    position: absolute;
-    background-color: #6b5b45;
-    opacity: 0.55;
+  .weiqi__point:hover {
+    background: color-mix(in srgb, var(--color-brand) 22%, transparent);
   }
 
-  .weiqi__point::before {
-    left: 0;
-    right: 0;
-    top: 50%;
-    height: 1px;
-  }
-
-  .weiqi__point::after {
-    top: 0;
-    bottom: 0;
-    left: 50%;
-    width: 1px;
-  }
-
-  .weiqi__point.has-black::before,
-  .weiqi__point.has-white::before,
-  .weiqi__point.has-black::after,
-  .weiqi__point.has-white::after {
-    z-index: 0;
-  }
-
-  .weiqi__point.has-black,
-  .weiqi__point.has-white {
-    z-index: 1;
-  }
-
-  .weiqi__stone {
-    position: absolute;
-    inset: 9%;
-    border-radius: 50%;
-    z-index: 2;
-  }
-
-  .weiqi__point.has-black .weiqi__stone {
-    background: radial-gradient(circle at 35% 32%, #4a4a4a 0%, #101010 68%);
-  }
-
-  .weiqi__point.has-white .weiqi__stone {
-    background: radial-gradient(circle at 35% 32%, #ffffff 0%, #d9d4cb 72%);
-  }
-
-  .weiqi__point.is-last::before {
-    opacity: 0;
-  }
-
-  .weiqi__point.is-ko {
-    outline: 2px dashed color-mix(in srgb, #b4553f 55%, transparent);
-    outline-offset: -18%;
+  .weiqi__point:focus-visible {
+    outline: 2px solid var(--color-brand-strong);
+    outline-offset: -2px;
   }
 
   .weiqi__actions {
