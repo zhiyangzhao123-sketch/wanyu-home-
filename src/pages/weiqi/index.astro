@@ -1,0 +1,347 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="下一盘围棋 · 9 路 | 宛瑜的小窝"
+  description="九路围棋，带提子、禁入点与打劫判定。默认和电脑下，也可以两个人轮流。"
+>
+  <div class="weiqi container-content">
+    <header class="weiqi__header">
+      <h1 class="weiqi__title">下一盘围棋</h1>
+      <p class="weiqi__lead">
+        九路棋盘，一局几分钟。黑先，提子、禁入点、打劫都按规矩判。
+      </p>
+    </header>
+
+    <div class="weiqi__panel">
+      <div class="weiqi__status">
+        <span class="weiqi__turn" data-turn>轮到黑棋</span>
+        <span class="weiqi__caps">提子 黑 <strong data-cap-black>0</strong> · 白 <strong data-cap-white>0</strong></span>
+      </div>
+
+      <div class="weiqi__board" data-board role="grid" aria-label="九路棋盘"></div>
+
+      <div class="weiqi__actions">
+        <button type="button" class="weiqi__btn" data-undo>悔棋</button>
+        <button type="button" class="weiqi__btn" data-pass>停一手</button>
+        <button type="button" class="weiqi__btn weiqi__btn--ghost" data-new>新一局</button>
+        <button type="button" class="weiqi__btn weiqi__btn--ghost" data-mode>人机</button>
+      </div>
+
+      <p class="weiqi__note" data-note aria-live="polite"></p>
+    </div>
+
+    <p class="weiqi__more">
+      还想下五子棋？<a href="/gobang/">那边有一台</a>。 ← <a href="/">回首页</a>
+    </p>
+  </div>
+
+  <script>
+    import { createBoard, play, pass, chooseMove, scoreArea, BLACK, WHITE, EMPTY } from "../../lib/go-engine.js";
+
+    const boardEl = document.querySelector<HTMLElement>("[data-board]")!;
+    const turnEl = document.querySelector<HTMLElement>("[data-turn]")!;
+    const capBlackEl = document.querySelector<HTMLElement>("[data-cap-black]")!;
+    const capWhiteEl = document.querySelector<HTMLElement>("[data-cap-white]")!;
+    const noteEl = document.querySelector<HTMLElement>("[data-note]")!;
+    const undoBtn = document.querySelector<HTMLButtonElement>("[data-undo]")!;
+    const passBtn = document.querySelector<HTMLButtonElement>("[data-pass]")!;
+    const newBtn = document.querySelector<HTMLButtonElement>("[data-new]")!;
+    const modeBtn = document.querySelector<HTMLButtonElement>("[data-mode]")!;
+
+    const SIZE = 9;
+    let vsComputer = true;
+    let stack: any[] = []; // 每一步的状态，用于悔棋
+    let state = createBoard(SIZE);
+    let over = false;
+    let busy = false;
+
+    function note(text: string) {
+      noteEl.textContent = text;
+      if (text) window.setTimeout(() => { if (noteEl.textContent === text) noteEl.textContent = ""; }, 2200);
+    }
+
+    function render() {
+      boardEl.style.setProperty("--n", String(SIZE));
+      boardEl.innerHTML = "";
+      for (let i = 0; i < SIZE * SIZE; i++) {
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = "weiqi__point";
+        cell.dataset.pos = String(i);
+        const v = state.grid[i];
+        if (v === BLACK || v === WHITE) {
+          cell.classList.add(v === BLACK ? "has-black" : "has-white");
+          const stone = document.createElement("i");
+          stone.className = "weiqi__stone";
+          cell.appendChild(stone);
+        } else if (i === state.ko) {
+          cell.classList.add("is-ko");
+        }
+        if (state.history[state.history.length - 1] === i) cell.classList.add("is-last");
+        cell.setAttribute("aria-label", `第 ${Math.floor(i / SIZE) + 1} 行第 ${(i % SIZE) + 1} 列${v ? (v === BLACK ? "，黑子" : "，白子") : "，空"}`);
+        boardEl.appendChild(cell);
+      }
+      turnEl.textContent = over
+        ? "本局结束"
+        : state.turn === BLACK
+          ? "轮到黑棋"
+          : "轮到白棋";
+      capBlackEl.textContent = String(state.captured[BLACK]);
+      capWhiteEl.textContent = String(state.captured[WHITE]);
+      modeBtn.textContent = vsComputer ? "人机" : "双人";
+    }
+
+    function endCheck() {
+      if (state.passes < 2) return false;
+      const sc = scoreArea(state);
+      over = true;
+      render();
+      note(`双方停手，数子：黑 ${sc.black} · 白 ${sc.white} —— ${sc.black === sc.white ? "平局" : sc.black > sc.white ? "黑胜" : "白胜"}`);
+      return true;
+    }
+
+    function doMove(pos: number, byAI = false) {
+      if (over || busy) return;
+      if (byAI && state.turn !== WHITE) return;
+      const result = play(state, pos);
+      if (result.error) {
+        note(result.error);
+        return;
+      }
+      stack.push(state);
+      state = result;
+      render();
+      if (endCheck()) return;
+      if (vsComputer && state.turn === WHITE) scheduleAI();
+    }
+
+    function scheduleAI() {
+      busy = true;
+      window.setTimeout(() => {
+        const pos = chooseMove(state);
+        busy = false;
+        if (pos == null) {
+          stack.push(state);
+          state = pass(state);
+          render();
+          endCheck();
+          return;
+        }
+        doMove(pos, true);
+      }, 260);
+    }
+
+    boardEl.addEventListener("click", (e) => {
+      const cell = (e.target as HTMLElement).closest<HTMLButtonElement>(".weiqi__point");
+      if (!cell) return;
+      if (vsComputer && state.turn === WHITE) return;
+      doMove(Number(cell.dataset.pos));
+    });
+
+    undoBtn.addEventListener("click", () => {
+      // 人机模式下连退两步（电脑那一手也退掉）
+      let steps = vsComputer && stack.length >= 2 ? 2 : 1;
+      while (steps-- > 0 && stack.length) {
+        state = stack.pop();
+      }
+      over = false;
+      render();
+      note("退回去了");
+    });
+
+    passBtn.addEventListener("click", () => {
+      if (over) return;
+      stack.push(state);
+      state = pass(state);
+      render();
+      if (endCheck()) return;
+      if (vsComputer && state.turn === WHITE) scheduleAI();
+    });
+
+    newBtn.addEventListener("click", () => {
+      state = createBoard(SIZE);
+      stack = [];
+      over = false;
+      render();
+      note("新的一局");
+    });
+
+    modeBtn.addEventListener("click", () => {
+      vsComputer = !vsComputer;
+      render();
+      note(vsComputer ? "人机模式" : "双人轮流");
+      if (vsComputer && state.turn === WHITE) scheduleAI();
+    });
+
+    render();
+  </script>
+</BaseLayout>
+
+<style>
+  .weiqi {
+    padding-block: 3rem 5rem;
+  }
+
+  .weiqi__header {
+    max-width: 34rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .weiqi__title {
+    margin: 0 0 0.6rem;
+  }
+
+  .weiqi__lead {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+  }
+
+  .weiqi__panel {
+    max-width: 34rem;
+    padding: 1.25rem;
+    border: 1px solid color-mix(in srgb, var(--color-divider) 70%, transparent);
+    border-radius: var(--radius-card-lg);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .weiqi__status {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.9rem;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+  }
+
+  .weiqi__turn {
+    color: var(--color-text-primary);
+    font-weight: 700;
+  }
+
+  .weiqi__caps strong {
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .weiqi__board {
+    display: grid;
+    grid-template-columns: repeat(var(--n, 9), 1fr);
+    gap: 0;
+    aspect-ratio: 1;
+    background-color: #e8d9bd;
+    border-radius: 10px;
+    padding: 4px;
+  }
+
+  .weiqi__point {
+    position: relative;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+
+  /* 交叉线 */
+  .weiqi__point::before,
+  .weiqi__point::after {
+    content: "";
+    position: absolute;
+    background-color: #6b5b45;
+    opacity: 0.55;
+  }
+
+  .weiqi__point::before {
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+  }
+
+  .weiqi__point::after {
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+  }
+
+  .weiqi__point.has-black::before,
+  .weiqi__point.has-white::before,
+  .weiqi__point.has-black::after,
+  .weiqi__point.has-white::after {
+    z-index: 0;
+  }
+
+  .weiqi__point.has-black,
+  .weiqi__point.has-white {
+    z-index: 1;
+  }
+
+  .weiqi__stone {
+    position: absolute;
+    inset: 9%;
+    border-radius: 50%;
+    z-index: 2;
+  }
+
+  .weiqi__point.has-black .weiqi__stone {
+    background: radial-gradient(circle at 35% 32%, #4a4a4a 0%, #101010 68%);
+  }
+
+  .weiqi__point.has-white .weiqi__stone {
+    background: radial-gradient(circle at 35% 32%, #ffffff 0%, #d9d4cb 72%);
+  }
+
+  .weiqi__point.is-last::before {
+    opacity: 0;
+  }
+
+  .weiqi__point.is-ko {
+    outline: 2px dashed color-mix(in srgb, #b4553f 55%, transparent);
+    outline-offset: -18%;
+  }
+
+  .weiqi__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1rem;
+  }
+
+  .weiqi__btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--color-brand-strong);
+    border-radius: 999px;
+    background-color: var(--color-brand-strong);
+    color: var(--color-surface);
+    font-family: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: transform 160ms var(--ease-out-soft), opacity 160ms var(--ease-out-soft);
+  }
+
+  .weiqi__btn:active {
+    transform: scale(0.97);
+  }
+
+  .weiqi__btn--ghost {
+    background-color: transparent;
+    color: var(--color-brand-strong);
+  }
+
+  .weiqi__note {
+    min-height: 1.4rem;
+    margin: 0.8rem 0 0;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+  }
+
+  .weiqi__more {
+    margin-top: 2rem;
+    font-size: 0.92rem;
+  }
+</style>
