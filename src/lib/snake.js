@@ -1,7 +1,7 @@
 // 贪吃蛇的规则：走一步、吃食、撞墙撞自己。
 //
 // 坐标用 {x, y}，左上角是 (0,0)。蛇头在数组第一个。
-// 不穿墙（撞墙就死），这是老式玩法。
+// 穿墙：走到边就绕到另一边。撞到自己才结束。
 
 export const COLS = 20;
 export const ROWS = 20;
@@ -63,13 +63,11 @@ export function step(game, rand = Math.random) {
   game.dir = game.pendingDir;
   const d = DIRS[game.dir];
   const head = game.snake[0];
-  const next = { x: head.x + d.x, y: head.y + d.y };
-
-  // 撞墙
-  if (next.x < 0 || next.x >= COLS || next.y < 0 || next.y >= ROWS) {
-    game.dead = true;
-    return game;
-  }
+  // 穿墙：出了这边就从另一边回来
+  const next = {
+    x: (head.x + d.x + COLS) % COLS,
+    y: (head.y + d.y + ROWS) % ROWS,
+  };
 
   const eating = game.food && next.x === game.food.x && next.y === game.food.y;
   // 撞自己：不吃食时尾巴会移开，所以尾巴那格不算
