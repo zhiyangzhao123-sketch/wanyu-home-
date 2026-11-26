@@ -1,0 +1,85 @@
+---
+import { getCollection } from "astro:content";
+import SectionHeader from "./SectionHeader.astro";
+import { formatDate } from "../utils/content";
+
+const all = await getCollection("thoughts");
+const recent = [...all]
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+  .slice(0, 4);
+---
+
+<section class="side-card thoughts-card" data-reveal="content" data-reveal-delay="60">
+  <SectionHeader emoji="📝" title="最近碎碎念" linkHref="/thoughts/" linkLabel="全部 →" />
+
+  {
+    recent.length === 0 ? (
+      <p class="thoughts-card__empty">还没写什么。</p>
+    ) : (
+      <ul class="thoughts-card__list">
+        {recent.map((t) => (
+          <li class="thoughts-card__item">
+            <p class="thoughts-card__text">{t.body?.trim() ?? ""}</p>
+            <p class="thoughts-card__meta">
+              <time datetime={t.data.pubDate.toISOString()}>{formatDate(t.data.pubDate)}</time>
+              {t.data.mood && <span class="thoughts-card__mood">{t.data.mood}</span>}
+            </p>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</section>
+
+<style>
+  .thoughts-card__list {
+    display: grid;
+    gap: 0.7rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .thoughts-card__item {
+    padding-bottom: 0.7rem;
+    border-bottom: 1px dashed color-mix(in srgb, var(--color-divider) 80%, transparent);
+  }
+
+  .thoughts-card__item:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .thoughts-card__text {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: 0.85rem;
+    line-height: 1.7;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .thoughts-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0.3rem 0 0;
+    color: var(--color-text-secondary);
+    font-size: 0.72rem;
+  }
+
+  .thoughts-card__mood {
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-accent-pink) 45%, transparent);
+    color: var(--color-text-primary);
+  }
+
+  .thoughts-card__empty {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+  }
+</style>

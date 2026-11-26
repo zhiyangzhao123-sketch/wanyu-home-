@@ -1,0 +1,149 @@
+---
+import { getCollection } from "astro:content";
+import SectionHeader from "./SectionHeader.astro";
+
+const posts = (await getCollection("blog")).filter((p) => !p.data.draft);
+const thoughts = await getCollection("thoughts");
+
+const counts = {
+  posts: posts.length,
+  thoughts: thoughts.length,
+  chess: 7,
+  mini: 5,
+};
+
+const entries = [
+  {
+    href: "/games/",
+    mark: "棋",
+    name: "下棋",
+    desc: "五子棋、围棋、象棋、国际象棋、军棋、黑白棋、斗兽棋",
+    count: counts.chess + " 盘",
+  },
+  {
+    href: "/mini/",
+    mark: "玩",
+    name: "小游戏",
+    desc: "连连看、俄罗斯方块、扫雷、贪吃蛇、2048",
+    count: counts.mini + " 个",
+  },
+];
+---
+
+<section class="side-card play-strip" data-reveal="content" data-reveal-delay="120">
+  <SectionHeader emoji="🎲" title="玩一会儿" linkHref="/games/" linkLabel="全部 →" />
+
+  <ul class="play-strip__list">
+    {
+      entries.map((e) => (
+        <li>
+          <a href={e.href} class="play-strip__item">
+            <span class="play-strip__mark" aria-hidden="true">
+              {e.mark}
+            </span>
+            <span class="play-strip__text">
+              <span class="play-strip__name">
+                {e.name}
+                <span class="play-strip__count">{e.count}</span>
+              </span>
+              <span class="play-strip__desc">{e.desc}</span>
+            </span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+
+  <p class="play-strip__stats">
+    这里写着 <strong>{counts.posts}</strong> 篇文章、<strong>{counts.thoughts}</strong> 条碎碎念。
+  </p>
+</section>
+
+<style>
+  .play-strip__list {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .play-strip__item {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.6rem 0.7rem;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--color-divider) 32%, transparent);
+    text-decoration: none;
+    color: inherit;
+    transition: background 160ms var(--ease-out-soft), transform 160ms var(--ease-out-soft);
+  }
+
+  .play-strip__item:hover {
+    background: color-mix(in srgb, var(--color-brand) 26%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .play-strip__mark {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 50%;
+    background: var(--color-surface);
+    color: var(--color-brand-strong);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+
+  .play-strip__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+
+  .play-strip__name {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--color-text-primary);
+  }
+
+  .play-strip__count {
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-brand) 40%, transparent);
+    color: var(--color-brand-strong);
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    font-weight: 400;
+  }
+
+  .play-strip__desc {
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+    line-height: 1.45;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+
+  .play-strip__stats {
+    margin: 0.7rem 0 0;
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+  }
+
+  .play-strip__stats strong {
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+</style>

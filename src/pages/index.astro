@@ -8,6 +8,8 @@ import ThoughtsStrip from "../components/ThoughtsStrip.astro";
 import ArticleCompactList from "../components/ArticleCompactList.astro";
 import GalleryPreview from "../components/GalleryPreview.astro";
 import GuestbookPreview from "../components/GuestbookPreview.astro";
+import PlayStrip from "../components/PlayStrip.astro";
+import ThoughtsCard from "../components/ThoughtsCard.astro";
 ---
 
 <BaseLayout>
@@ -30,9 +32,12 @@ import GuestbookPreview from "../components/GuestbookPreview.astro";
 
         <div class="home-dashboard__sidecards">
           <GalleryPreview />
-          <GuestbookPreview />
+          <ThoughtsCard />
+      <GuestbookPreview />
         </div>
       </div>
+
+      <PlayStrip />
     </div>
   </div>
 </BaseLayout>
