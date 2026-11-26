@@ -1,0 +1,476 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="俄罗斯方块 | 宛瑜的小窝"
+  description="经典俄罗斯方块：七种方块，消行得分，等级越高掉得越快。支持键盘和手机按钮。"
+>
+  <div class="tb container-content">
+    <header class="tb__header">
+      <h1 class="tb__title">俄罗斯方块</h1>
+      <p class="tb__lead">
+        方向键左右移动，上键转，空格直接落地。「P」暂停。
+      </p>
+    </header>
+
+    <div class="tb__panel">
+      <div class="tb__hud">
+        <span>分数 <strong data-score>0</strong></span>
+        <span>消行 <strong data-lines>0</strong></span>
+        <span>等级 <strong data-level>1</strong></span>
+        <span>最好 <strong data-best>0</strong></span>
+      </div>
+
+      <div class="tb__stage">
+        <canvas class="tb__canvas" data-canvas width="300" height="600" aria-label="游戏区"></canvas>
+        <div class="tb__overlay" data-overlay hidden>
+          <p class="tb__over-text" data-over-text>结束了</p>
+          <button type="button" class="tb__btn" data-again>再来一局</button>
+        </div>
+      </div>
+
+      <div class="tb__side">
+        <div class="tb__next">
+          <span class="tb__next-label">下一个</span>
+          <canvas class="tb__next-canvas" data-next width="96" height="96" aria-hidden="true"></canvas>
+        </div>
+      </div>
+
+      <div class="tb__controls">
+        <button type="button" class="tb__key" data-left aria-label="左移">←</button>
+        <button type="button" class="tb__key" data-rotate aria-label="旋转">⟳</button>
+        <button type="button" class="tb__key" data-right aria-label="右移">→</button>
+        <button type="button" class="tb__key" data-down aria-label="下移">↓</button>
+        <button type="button" class="tb__key tb__key--wide" data-drop aria-label="直接落地">落地</button>
+        <button type="button" class="tb__key tb__key--wide" data-pause aria-label="暂停">暂停</button>
+      </div>
+    </div>
+
+    <p class="tb__more"><a href="/mini/">← 回小游戏</a></p>
+  </div>
+
+  <script>
+    import {
+      COLS, ROWS, SHAPES, COLORS, emptyBoard, spawn, collides, merge, clearLines,
+      scoreFor, levelFor, dropInterval, makeBag, tryRotate, dropTo,
+    } from "../../../lib/tetris.js";
+
+    const canvas = document.querySelector("[data-canvas]") as HTMLCanvasElement;
+    const nextCanvas = document.querySelector("[data-next]") as HTMLCanvasElement;
+    const scoreEl = document.querySelector("[data-score]") as HTMLElement;
+    const linesEl = document.querySelector("[data-lines]") as HTMLElement;
+    const levelEl = document.querySelector("[data-level]") as HTMLElement;
+    const bestEl = document.querySelector("[data-best]") as HTMLElement;
+    const overlay = document.querySelector("[data-overlay]") as HTMLElement;
+    const overText = document.querySelector("[data-over-text]") as HTMLElement;
+    const againBtn = document.querySelector("[data-again]") as HTMLButtonElement;
+    const pauseBtn = document.querySelector("[data-pause]") as HTMLButtonElement;
+
+    const ctx = canvas.getContext("2d")!;
+    const nextCtx = nextCanvas.getContext("2d")!;
+    const CELL = canvas.width / COLS;
+    const KEY_BEST = "wanyu_tetris_best";
+
+    let board = emptyBoard();
+    let piece = spawn("T");
+    let bag: string[] = [];
+    let score = 0;
+    let lines = 0;
+    let level = 1;
+    let over = false;
+    let paused = false;
+    let last = 0;
+    let acc = 0;
+    let raf = 0;
+
+    function nextKind(): string {
+      if (!bag.length) bag = makeBag();
+      return bag.pop()!;
+    }
+
+    function bestScore() {
+      try {
+        return Number(localStorage.getItem(KEY_BEST) ?? 0);
+      } catch {
+        return 0;
+      }
+    }
+
+    function saveBest(v: number) {
+      try { localStorage.setItem(KEY_BEST, String(v)); } catch { /* 隐私模式 */ }
+    }
+
+    function drawCell(c: CanvasRenderingContext2D, x: number, y: number, kind: string, size: number, alpha = 1) {
+      c.globalAlpha = alpha;
+      c.fillStyle = COLORS[kind] ?? "#888";
+      c.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
+      // 顶部高光，看着不那么平
+      c.fillStyle = "rgba(255,255,255,0.28)";
+      c.fillRect(x * size + 1, y * size + 1, size - 2, (size - 2) * 0.28);
+      c.globalAlpha = 1;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 底色与网格
+      ctx.fillStyle = "#f6efe0";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "rgba(120,96,64,0.10)";
+      ctx.lineWidth = 1;
+      for (let c = 1; c < COLS; c++) {
+        ctx.beginPath();
+        ctx.moveTo(c * CELL, 0);
+        ctx.lineTo(c * CELL, canvas.height);
+        ctx.stroke();
+      }
+      for (let r = 1; r < ROWS; r++) {
+        ctx.beginPath();
+        ctx.moveTo(0, r * CELL);
+        ctx.lineTo(canvas.width, r * CELL);
+        ctx.stroke();
+      }
+
+      // 已落下的方块
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (board[r][c]) drawCell(ctx, c, r, board[r][c]!, CELL);
+        }
+      }
+
+      if (!over) {
+        // 落点预览
+        const ghost = dropTo(board, piece);
+        for (let r = 0; r < ghost.matrix.length; r++) {
+          for (let c = 0; c < ghost.matrix[r].length; c++) {
+            if (!ghost.matrix[r][c]) continue;
+            const x = ghost.x + c;
+            const y = ghost.y + r;
+            if (y < 0) continue;
+            ctx.fillStyle = "rgba(90,74,54,0.13)";
+            ctx.fillRect(x * CELL + 1, y * CELL + 1, CELL - 2, CELL - 2);
+          }
+        }
+
+        // 当前方块
+        for (let r = 0; r < piece.matrix.length; r++) {
+          for (let c = 0; c < piece.matrix[r].length; c++) {
+            if (!piece.matrix[r][c]) continue;
+            const y = piece.y + r;
+            if (y < 0) continue;
+            drawCell(ctx, piece.x + c, y, piece.kind, CELL);
+          }
+        }
+      }
+    }
+
+    function drawNext() {
+      nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+      const size = 24;
+      const kind = nextKindPreview;
+      const m = SHAPES[kind];
+      const ox = (nextCanvas.width - m[0].length * size) / 2;
+      const oy = (nextCanvas.height - m.length * size) / 2;
+      nextCtx.save();
+      nextCtx.translate(ox, oy);
+      for (let r = 0; r < m.length; r++) {
+        for (let c = 0; c < m[r].length; c++) {
+          if (m[r][c]) drawCell(nextCtx, c, r, kind, size);
+        }
+      }
+      nextCtx.restore();
+    }
+
+    let nextKindPreview = "I";
+
+    function updateHud() {
+      scoreEl.textContent = String(score);
+      linesEl.textContent = String(lines);
+      levelEl.textContent = String(level);
+      bestEl.textContent = String(bestScore());
+      pauseBtn.textContent = paused ? "继续" : "暂停";
+    }
+
+    function lockPiece() {
+      board = merge(board, piece);
+      const res = clearLines(board);
+      board = res.board;
+      if (res.cleared) {
+        score += scoreFor(res.cleared, level);
+        lines += res.cleared;
+        level = levelFor(lines);
+      }
+
+      const kind = nextKind();
+      piece = spawn(kind);
+      nextKindPreview = nextKind();
+      bag.push(nextKindPreview);
+
+      if (collides(board, piece)) {
+        over = true;
+        const b = bestScore();
+        if (score > b) saveBest(score);
+        overText.textContent = `结束了，${score} 分`;
+        overlay.hidden = false;
+      }
+      updateHud();
+      drawNext();
+    }
+
+    function step() {
+      if (collides(board, piece, 0, 1)) {
+        lockPiece();
+      } else {
+        piece = { ...piece, y: piece.y + 1 };
+      }
+    }
+
+    function loop(now: number) {
+      raf = requestAnimationFrame(loop);
+      if (over || paused) {
+        last = now;
+        return;
+      }
+      if (!last) last = now;
+      const dt = now - last;
+      last = now;
+      acc += dt;
+      const interval = dropInterval(level);
+      while (acc >= interval) {
+        acc -= interval;
+        step();
+      }
+      draw();
+    }
+
+    function move(dx: number) {
+      if (over || paused) return;
+      if (!collides(board, piece, dx, 0)) piece = { ...piece, x: piece.x + dx };
+      draw();
+    }
+
+    function softDrop() {
+      if (over || paused) return;
+      step();
+      draw();
+    }
+
+    function rotate() {
+      if (over || paused) return;
+      const rotated = tryRotate(board, piece);
+      if (rotated) piece = rotated;
+      draw();
+    }
+
+    function hardDrop() {
+      if (over || paused) return;
+      piece = dropTo(board, piece);
+      lockPiece();
+      draw();
+    }
+
+    function togglePause() {
+      if (over) return;
+      paused = !paused;
+      updateHud();
+    }
+
+    function restart() {
+      board = emptyBoard();
+      bag = [];
+      score = 0;
+      lines = 0;
+      level = 1;
+      over = false;
+      paused = false;
+      acc = 0;
+      last = 0;
+      piece = spawn(nextKind());
+      nextKindPreview = nextKind();
+      overlay.hidden = true;
+      updateHud();
+      drawNext();
+      draw();
+    }
+
+    document.addEventListener("keydown", (e) => {
+      const k = e.key;
+      if (["ArrowLeft", "ArrowRight", "ArrowDown", "ArrowUp", " ", "p", "P"].includes(k)) e.preventDefault();
+      if (k === "ArrowLeft") move(-1);
+      else if (k === "ArrowRight") move(1);
+      else if (k === "ArrowDown") softDrop();
+      else if (k === "ArrowUp") rotate();
+      else if (k === " ") hardDrop();
+      else if (k === "p" || k === "P") togglePause();
+    });
+
+    document.querySelector("[data-left]")!.addEventListener("click", () => move(-1));
+    document.querySelector("[data-right]")!.addEventListener("click", () => move(1));
+    document.querySelector("[data-down]")!.addEventListener("click", softDrop);
+    document.querySelector("[data-rotate]")!.addEventListener("click", rotate);
+    document.querySelector("[data-drop]")!.addEventListener("click", hardDrop);
+    pauseBtn.addEventListener("click", togglePause);
+    againBtn.addEventListener("click", restart);
+
+    restart();
+    raf = requestAnimationFrame(loop);
+  </script>
+</BaseLayout>
+
+<style is:global>
+  .tb {
+    padding-block: 3rem 5rem;
+  }
+
+  .tb__header {
+    max-width: 34rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .tb__title {
+    margin: 0 0 0.6rem;
+  }
+
+  .tb__lead {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+  }
+
+  .tb__panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 8rem;
+    grid-template-areas:
+      "hud hud"
+      "stage side"
+      "controls controls";
+    gap: 0.9rem 1rem;
+    max-width: 30rem;
+    padding: 1.1rem;
+    border: 1px solid color-mix(in srgb, var(--color-divider) 70%, transparent);
+    border-radius: var(--radius-card-lg);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .tb__hud {
+    grid-area: hud;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    color: var(--color-text-secondary);
+    font-size: 0.88rem;
+  }
+
+  .tb__hud strong {
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tb__stage {
+    grid-area: stage;
+    position: relative;
+  }
+
+  .tb__canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    background: #f6efe0;
+    box-shadow: inset 0 0 0 1px rgb(120 96 64 / 30%);
+  }
+
+  .tb__overlay {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    gap: 0.9rem;
+    text-align: center;
+    background: rgb(250 246 238 / 88%);
+    border-radius: 8px;
+  }
+
+  .tb__overlay[hidden] {
+    display: none;
+  }
+
+  .tb__over-text {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+
+  .tb__side {
+    grid-area: side;
+  }
+
+  .tb__next {
+    display: grid;
+    gap: 0.35rem;
+    justify-items: center;
+    padding: 0.6rem;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--color-divider) 45%, transparent);
+  }
+
+  .tb__next-label {
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+  }
+
+  .tb__controls {
+    grid-area: controls;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.45rem;
+    margin-top: 0.2rem;
+  }
+
+  .tb__key {
+    padding: 0.55rem 0;
+    border: 1px solid color-mix(in srgb, var(--color-brand-strong) 40%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--color-brand) 22%, var(--color-surface));
+    color: var(--color-text-primary);
+    font-family: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  .tb__key:active {
+    transform: scale(0.97);
+  }
+
+  .tb__key--wide {
+    grid-column: span 2;
+    font-size: 0.9rem;
+  }
+
+  .tb__btn {
+    padding: 0.5rem 1.1rem;
+    border: 1px solid var(--color-brand-strong);
+    border-radius: 999px;
+    background-color: var(--color-brand-strong);
+    color: var(--color-surface);
+    font-family: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+  }
+
+  .tb__more {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 480px) {
+    .tb__panel {
+      grid-template-columns: minmax(0, 1fr) 6rem;
+    }
+  }
+</style>
