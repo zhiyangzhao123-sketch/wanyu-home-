@@ -1,0 +1,201 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const games = [
+  {
+    href: "/gobang",
+    name: "五子棋",
+    mark: "五",
+    desc: "经典人机对战，电脑会算，你先手。",
+    tag: "简单",
+  },
+  {
+    href: "/weiqi",
+    name: "围棋",
+    mark: "围",
+    desc: "九路棋盘，提子、打劫、禁入点都按规矩判。",
+    tag: "9 路",
+  },
+  {
+    href: "/xiangqi",
+    name: "象棋",
+    mark: "象",
+    desc: "马腿、象眼、炮架、将帅照面，楚河汉界。",
+    tag: "中式",
+  },
+  {
+    href: "/chess",
+    name: "国际象棋",
+    mark: "王",
+    desc: "易位、吃过路兵、升变，配经典矢量棋子。",
+    tag: "西式",
+  },
+  {
+    href: "/junqi",
+    name: "军棋",
+    mark: "军",
+    desc: "翻棋：五十枚扣着，司令吃军长，炸弹同归于尽。",
+    tag: "翻棋",
+  },
+  {
+    href: "/reversi",
+    name: "黑白棋",
+    mark: "黑",
+    desc: "夹住对方的子就翻面，先抢角的人赢一半。",
+    tag: "翻转",
+  },
+  {
+    href: "/jungle",
+    name: "斗兽棋",
+    mark: "兽",
+    desc: "象狮虎豹狼狗猫鼠，鼠能吃象，狮虎能跳河。",
+    tag: "兽棋",
+  },
+];
+---
+
+<BaseLayout
+  title="下棋 | 宛瑜的小窝"
+  description="站上的七盘棋：五子棋、围棋、象棋、国际象棋、军棋、黑白棋、斗兽棋，都能和电脑下。"
+>
+  <div class="games container-content">
+    <header class="games__header">
+      <h1 class="games__title">下棋</h1>
+      <p class="games__lead">
+        七盘棋，都能和电脑下。每盘都有三档难度，下不过就换简单那档。
+      </p>
+    </header>
+
+    <ul class="games__list">
+      {
+        games.map((g) => (
+          <li class="games__item">
+            <a href={g.href} class="games__card">
+              <span class="games__mark" aria-hidden="true">{g.mark}</span>
+              <span class="games__body">
+                <span class="games__name">
+                  {g.name}
+                  <span class="games__tag">{g.tag}</span>
+                </span>
+                <span class="games__desc">{g.desc}</span>
+              </span>
+              <span class="games__go" aria-hidden="true">→</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="games__back"><a href="/">← 回首页</a></p>
+  </div>
+</BaseLayout>
+
+<style>
+  .games {
+    padding-block: 3rem 5rem;
+  }
+
+  .games__header {
+    max-width: 34rem;
+    margin-bottom: 2rem;
+  }
+
+  .games__title {
+    margin: 0 0 0.6rem;
+  }
+
+  .games__lead {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+  }
+
+  .games__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .games__card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    height: 100%;
+    padding: 1.1rem 1.2rem;
+    border: 1px solid color-mix(in srgb, var(--color-divider) 75%, transparent);
+    border-radius: var(--radius-card);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-card);
+    text-decoration: none;
+    color: inherit;
+    transition:
+      transform 200ms var(--ease-out-soft),
+      box-shadow 200ms var(--ease-out-soft);
+  }
+
+  .games__card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .games__mark {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-brand) 30%, var(--color-surface));
+    color: var(--color-brand-strong);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  .games__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .games__name {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--color-text-primary);
+  }
+
+  .games__tag {
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-divider) 60%, transparent);
+    color: var(--color-text-secondary);
+    font-family: var(--font-body);
+    font-size: 0.7rem;
+    font-weight: 400;
+  }
+
+  .games__desc {
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  .games__go {
+    margin-left: auto;
+    color: var(--color-brand-strong);
+    font-size: 1.1rem;
+  }
+
+  .games__back {
+    margin-top: 2.5rem;
+    font-size: 0.92rem;
+  }
+</style>
