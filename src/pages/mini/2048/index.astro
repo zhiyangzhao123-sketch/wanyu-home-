@@ -1,0 +1,366 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="2048 | 宛瑜的小窝"
+  description="2048：滑动合并相同的数字，凑出 2048。方向键或滑动屏幕都能玩。"
+>
+  <div class="g2 container-content">
+    <header class="g2__header">
+      <h1 class="g2__title">2048</h1>
+      <p class="g2__lead">
+        方向键或滑动屏幕，相同的数字撞在一起会合成两倍。凑出 2048 就算赢，还能接着玩。
+      </p>
+    </header>
+
+    <div class="g2__panel">
+      <div class="g2__hud">
+        <span>分数 <strong data-score>0</strong></span>
+        <span>最好 <strong data-best>0</strong></span>
+        <button type="button" class="g2__btn" data-new>重来</button>
+      </div>
+
+      <div class="g2__board-wrap">
+        <div class="g2__board" data-board></div>
+        <div class="g2__overlay" data-overlay hidden>
+          <p class="g2__over-text" data-over-text>结束了</p>
+          <div class="g2__over-actions">
+            <button type="button" class="g2__btn" data-again>再来一局</button>
+            <button type="button" class="g2__btn g2__btn--ghost" data-keep hidden>继续玩</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="g2__pad">
+        <button type="button" class="g2__key" data-dir="up" aria-label="上">↑</button>
+        <button type="button" class="g2__key" data-dir="left" aria-label="左">←</button>
+        <button type="button" class="g2__key" data-dir="down" aria-label="下">↓</button>
+        <button type="button" class="g2__key" data-dir="right" aria-label="右">→</button>
+      </div>
+    </div>
+
+    <p class="g2__more"><a href="/mini/">← 回小游戏</a></p>
+  </div>
+
+  <script>
+    import { createGame, slide, spawn, isOver, SIZE } from "../../../lib/game2048.js";
+
+    const boardEl = document.querySelector("[data-board]") as HTMLElement;
+    const scoreEl = document.querySelector("[data-score]") as HTMLElement;
+    const bestEl = document.querySelector("[data-best]") as HTMLElement;
+    const overlay = document.querySelector("[data-overlay]") as HTMLElement;
+    const overText = document.querySelector("[data-over-text]") as HTMLElement;
+    const againBtn = document.querySelector("[data-again]") as HTMLButtonElement;
+    const keepBtn = document.querySelector("[data-keep]") as HTMLButtonElement;
+    const newBtn = document.querySelector("[data-new]") as HTMLButtonElement;
+
+    const KEY_BEST = "wanyu_2048_best";
+
+    let game = createGame();
+    let lastSpawn = -1;
+    let merged: number[] = [];
+    let finished = false;
+
+    function best() {
+      try { return Number(localStorage.getItem(KEY_BEST) ?? 0); } catch { return 0; }
+    }
+    function saveBest(v: number) {
+      try { localStorage.setItem(KEY_BEST, String(v)); } catch { /* 忽略 */ }
+    }
+
+    function render() {
+      boardEl.innerHTML = "";
+      for (let i = 0; i < SIZE * SIZE; i++) {
+        const value = game.board[i];
+        const cell = document.createElement("div");
+        cell.className = "g2__cell";
+        if (value) {
+          const tile = document.createElement("div");
+          tile.className = "g2__tile g2__tile--" + (value > 2048 ? "big" : value);
+          tile.textContent = String(value);
+          if (i === lastSpawn) tile.classList.add("is-new");
+          if (merged.includes(i)) tile.classList.add("is-merged");
+          cell.appendChild(tile);
+        }
+        boardEl.appendChild(cell);
+      }
+      scoreEl.textContent = String(game.score);
+      bestEl.textContent = String(best());
+    }
+
+    function afterMove(dir: "left" | "right" | "up" | "down") {
+      if (finished) return;
+      const res = slide(game, dir);
+      if (!res.moved) return;
+
+      lastSpawn = spawn(game.board);
+      merged = [];
+      render();
+
+      if (game.score > best()) saveBest(game.score);
+
+      if (game.won && !finished) {
+        finished = true;
+        overText.textContent = "凑出 2048 了";
+        keepBtn.hidden = false;
+        againBtn.textContent = "重开";
+        overlay.hidden = false;
+        return;
+      }
+      if (isOver(game.board)) {
+        finished = true;
+        overText.textContent = `走不动了，${game.score} 分`;
+        keepBtn.hidden = true;
+        againBtn.textContent = "再来一局";
+        overlay.hidden = false;
+      }
+    }
+
+    function restart() {
+      game = createGame();
+      lastSpawn = -1;
+      merged = [];
+      finished = false;
+      overlay.hidden = true;
+      keepBtn.hidden = true;
+      againBtn.textContent = "再来一局";
+      render();
+    }
+
+    document.addEventListener("keydown", (e) => {
+      const map: Record<string, "left" | "right" | "up" | "down"> = {
+        ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down",
+        a: "left", d: "right", w: "up", s: "down", A: "left", D: "right", W: "up", S: "down",
+      };
+      const dir = map[e.key];
+      if (!dir) return;
+      e.preventDefault();
+      afterMove(dir);
+    });
+
+    // 手机滑动
+    let start: { x: number; y: number } | null = null;
+    const wrap = boardEl;
+    wrap.addEventListener("touchstart", (e) => {
+      const t = e.changedTouches[0];
+      start = { x: t.clientX, y: t.clientY };
+    }, { passive: true });
+    wrap.addEventListener("touchend", (e) => {
+      if (!start) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - start.x;
+      const dy = t.clientY - start.y;
+      start = null;
+      if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
+      if (Math.abs(dx) > Math.abs(dy)) afterMove(dx > 0 ? "right" : "left");
+      else afterMove(dy > 0 ? "down" : "up");
+    }, { passive: true });
+
+    document.querySelectorAll("[data-dir]").forEach((btn) => {
+      btn.addEventListener("click", () => afterMove((btn as HTMLElement).dataset.dir as any));
+    });
+
+    keepBtn.addEventListener("click", () => {
+      overlay.hidden = true;
+      finished = true; // 赢了之后继续玩，不再弹窗
+    });
+    againBtn.addEventListener("click", restart);
+    newBtn.addEventListener("click", restart);
+
+    render();
+  </script>
+</BaseLayout>
+
+<style is:global>
+  .g2 {
+    padding-block: 3rem 5rem;
+  }
+
+  .g2__header {
+    max-width: 34rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .g2__title {
+    margin: 0 0 0.6rem;
+  }
+
+  .g2__lead {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+  }
+
+  .g2__panel {
+    max-width: 26rem;
+    padding: 1.1rem;
+    border: 1px solid color-mix(in srgb, var(--color-divider) 70%, transparent);
+    border-radius: var(--radius-card-lg);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .g2__hud {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+    color: var(--color-text-secondary);
+    font-size: 0.88rem;
+  }
+
+  .g2__hud strong {
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .g2__hud .g2__btn {
+    margin-left: auto;
+  }
+
+  .g2__board-wrap {
+    position: relative;
+  }
+
+  .g2__board {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    padding: 8px;
+    border-radius: 10px;
+    background: #cdb997;
+    box-shadow: inset 0 0 0 1px rgb(120 90 55 / 28%);
+    touch-action: none;
+  }
+
+  .g2__cell {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 6px;
+    background: rgb(250 245 235 / 55%);
+  }
+
+  .g2__tile {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    font-family: var(--font-english);
+    font-weight: 700;
+    font-size: clamp(1rem, 4.2vw, 1.6rem);
+    color: #5b4a36;
+    background: #f2e6d0;
+    box-shadow: 0 1px 2px rgb(120 90 55 / 22%);
+  }
+
+  /* 数值越大，颜色越深 */
+  .g2__tile--2 { background: #f6ecdb; }
+  .g2__tile--4 { background: #efe0c5; }
+  .g2__tile--8 { background: #e7cfa6; color: #6a4f30; }
+  .g2__tile--16 { background: #e0bb87; color: #fffaf0; }
+  .g2__tile--32 { background: #d9a871; color: #fffaf0; }
+  .g2__tile--64 { background: #cf8f57; color: #fffaf0; }
+  .g2__tile--128 { background: #c47a45; color: #fffaf0; font-size: clamp(0.9rem, 3.6vw, 1.35rem); }
+  .g2__tile--256 { background: #b96a3c; color: #fffaf0; font-size: clamp(0.9rem, 3.6vw, 1.35rem); }
+  .g2__tile--512 { background: #ab5a35; color: #fffaf0; font-size: clamp(0.9rem, 3.6vw, 1.35rem); }
+  .g2__tile--1024 { background: #9a4a2e; color: #fffaf0; font-size: clamp(0.8rem, 3.2vw, 1.2rem); }
+  .g2__tile--2048 { background: #8a3d26; color: #fffaf0; font-size: clamp(0.8rem, 3.2vw, 1.2rem); }
+  .g2__tile--big { background: #6f2f1c; color: #fffaf0; font-size: clamp(0.75rem, 3vw, 1.1rem); }
+
+  .g2__tile.is-new {
+    animation: g2-spawn 180ms var(--ease-out-soft);
+  }
+
+  @keyframes g2-spawn {
+    from { transform: scale(0.3); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .g2__tile.is-merged {
+    animation: g2-pop 220ms var(--ease-out-soft);
+  }
+
+  @keyframes g2-pop {
+    0% { transform: scale(1); }
+    45% { transform: scale(1.14); }
+    100% { transform: scale(1); }
+  }
+
+  .g2__overlay {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    gap: 1rem;
+    text-align: center;
+    background: rgb(250 246 238 / 92%);
+    border-radius: 10px;
+  }
+
+  .g2__overlay[hidden] {
+    display: none;
+  }
+
+  .g2__over-text {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  .g2__over-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+
+  .g2__pad {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.45rem;
+    margin-top: 0.9rem;
+  }
+
+  .g2__key {
+    padding: 0.55rem 0;
+    border: 1px solid color-mix(in srgb, var(--color-brand-strong) 40%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--color-brand) 22%, var(--color-surface));
+    color: var(--color-text-primary);
+    font-family: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  .g2__btn {
+    padding: 0.45rem 0.95rem;
+    border: 1px solid var(--color-brand-strong);
+    border-radius: 999px;
+    background-color: var(--color-brand-strong);
+    color: var(--color-surface);
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .g2__btn--ghost {
+    background-color: transparent;
+    color: var(--color-brand-strong);
+  }
+
+  .g2__more {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .g2__tile.is-new,
+    .g2__tile.is-merged {
+      animation: none;
+    }
+  }
+</style>
