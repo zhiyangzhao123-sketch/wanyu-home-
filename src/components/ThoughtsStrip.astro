@@ -84,10 +84,17 @@ const thoughts = (await getCollection("thoughts"))
   }
 
   @media (min-width: 1024px) {
+    /* 桌面不再横向溢出：换行排，便利贴铺满整行 */
     .thoughts-strip {
       overflow: visible;
       flex-wrap: nowrap;
       justify-content: flex-start;
+    }
+
+    /* 五张便利贴平分整行，铺满不留空（用复合选择器压过基础规则） */
+    .thoughts-strip .thought-note {
+      flex: 1 1 0;
+      min-width: 0;
     }
   }
 

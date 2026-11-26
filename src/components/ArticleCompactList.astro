@@ -37,7 +37,7 @@ const articles = (await getCollection("blog"))
         const readingMinutes = getReadingMinutes(article.body ?? "");
 
         return (
-          <article class="articles-compact__item" data-reveal="content" data-reveal-delay="80">
+          <article class:list={["articles-compact__item", { "has-thumb": !!cover }]} data-reveal="content" data-reveal-delay="80">
             {cover && (
               <a
                 href={`/blog/${article.id}/`}
@@ -73,22 +73,41 @@ const articles = (await getCollection("blog"))
 
 <style>
   .articles-compact__list {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
   }
 
-  .articles-compact__item + .articles-compact__item {
-    margin-top: 0.85rem;
-    padding-top: 0.85rem;
-    border-top: 1px solid rgb(236 229 218 / 85%);
+  @media (min-width: 900px) {
+    .articles-compact__list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem 1.25rem;
+    }
+  }
+
+  .articles-compact__item {
+    padding: 1rem 1.1rem;
+    border: 1px solid color-mix(in srgb, var(--color-divider) 65%, transparent);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+    transition: transform 200ms var(--ease-out-soft), box-shadow 200ms var(--ease-out-soft);
+  }
+
+  .articles-compact__item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
   }
 
   .articles-compact__item {
     display: grid;
-    grid-template-columns: 160px 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
     align-items: start;
-    padding: 0.35rem 0;
+  }
+
+  .articles-compact__item.has-thumb {
+    grid-template-columns: 160px minmax(0, 1fr);
   }
 
   .articles-compact__thumb {
@@ -135,7 +154,7 @@ const articles = (await getCollection("blog"))
     line-height: 1.65;
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     overflow: hidden;
   }
 
