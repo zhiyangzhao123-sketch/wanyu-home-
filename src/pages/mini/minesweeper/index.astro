@@ -1,0 +1,403 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="扫雷 | 宛瑜的小窝"
+  description="经典扫雷：初级九路、中级十二路、高级十六路。第一下永远安全，右键或长按插旗。"
+>
+  <div class="ms container-content">
+    <header class="ms__header">
+      <h1 class="ms__title">扫雷</h1>
+      <p class="ms__lead">
+        左键翻开，右键插旗；手机上长按也能插旗。第一下永远踩不到雷。
+      </p>
+    </header>
+
+    <div class="ms__panel">
+      <div class="ms__hud">
+        <span>剩余 <strong data-left>10</strong></span>
+        <span>用时 <strong data-time>0</strong></span>
+        <span>最好 <strong data-best>—</strong></span>
+      </div>
+
+      <div class="ms__board-wrap">
+        <div class="ms__board" data-board></div>
+        <div class="ms__overlay" data-overlay hidden>
+          <p class="ms__over-text" data-over-text>结束</p>
+          <button type="button" class="ms__btn" data-again>再来一局</button>
+        </div>
+      </div>
+
+      <div class="ms__actions">
+        <button type="button" class="ms__btn" data-flag-mode aria-pressed="false">插旗模式：关</button>
+        <button type="button" class="ms__btn ms__btn--ghost" data-new>重来</button>
+        <button type="button" class="ms__btn ms__btn--ghost" data-level>难度：初级</button>
+      </div>
+    </div>
+
+    <p class="ms__more"><a href="/mini/">← 回小游戏</a></p>
+  </div>
+
+  <script>
+    import {
+      createBoard, reveal, toggleFlag, flagCount, isWin, revealAllMines, LEVELS,
+    } from "../../../lib/minesweeper.js";
+
+    const boardEl = document.querySelector("[data-board]") as HTMLElement;
+    const leftEl = document.querySelector("[data-left]") as HTMLElement;
+    const timeEl = document.querySelector("[data-time]") as HTMLElement;
+    const bestEl = document.querySelector("[data-best]") as HTMLElement;
+    const overlay = document.querySelector("[data-overlay]") as HTMLElement;
+    const overText = document.querySelector("[data-over-text]") as HTMLElement;
+    const againBtn = document.querySelector("[data-again]") as HTMLButtonElement;
+    const flagBtn = document.querySelector("[data-flag-mode]") as HTMLButtonElement;
+    const newBtn = document.querySelector("[data-new]") as HTMLButtonElement;
+    const levelBtn = document.querySelector("[data-level]") as HTMLButtonElement;
+
+    const LEVEL_KEYS = ["easy", "medium", "hard"] as const;
+    let levelIdx = 0;
+    let board = createBoard(LEVELS.easy.cols, LEVELS.easy.rows);
+    let over = false;
+    let startedAt = 0;
+    let timer: number | undefined;
+    let flagMode = false;
+    let longPress: number | undefined;
+
+    function level() {
+      return LEVELS[LEVEL_KEYS[levelIdx]];
+    }
+
+    function bestKey() {
+      return "wanyu_minesweeper_best_" + LEVEL_KEYS[levelIdx];
+    }
+
+    function bestTime() {
+      try {
+        const v = localStorage.getItem(bestKey());
+        return v ? Number(v) : 0;
+      } catch {
+        return 0;
+      }
+    }
+
+    function fmt(sec: number) {
+      return sec >= 60 ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}` : String(sec);
+    }
+
+    function startTimer() {
+      if (timer || over) return;
+      startedAt = Date.now();
+      timer = window.setInterval(() => {
+        timeEl.textContent = String(Math.floor((Date.now() - startedAt) / 1000));
+      }, 500);
+    }
+
+    function stopTimer() {
+      if (timer) window.clearInterval(timer);
+      timer = undefined;
+    }
+
+    function render() {
+      const { cols, rows } = level();
+      boardEl.style.setProperty("--cols", String(cols));
+      boardEl.innerHTML = "";
+
+      for (let i = 0; i < board.cells.length; i++) {
+        const cell = board.cells[i];
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "ms__cell";
+        btn.dataset.pos = String(i);
+
+        if (cell.revealed) {
+          btn.classList.add("is-open");
+          if (cell.mine) {
+            btn.classList.add("is-mine");
+            btn.textContent = "✸";
+          } else if (cell.count > 0) {
+            btn.textContent = String(cell.count);
+            btn.dataset.n = String(cell.count);
+          }
+        } else if (cell.flag) {
+          btn.classList.add("is-flag");
+          btn.textContent = "⚑";
+        } else {
+          btn.classList.add("is-covered");
+        }
+
+        boardEl.appendChild(btn);
+      }
+
+      const flags = flagCount(board);
+      leftEl.textContent = String(Math.max(0, level().mines - flags));
+      const b = bestTime();
+      bestEl.textContent = b ? fmt(b) : "—";
+      levelBtn.textContent = "难度：" + level().label;
+      flagBtn.textContent = "插旗模式：" + (flagMode ? "开" : "关");
+      flagBtn.setAttribute("aria-pressed", flagMode ? "true" : "false");
+    }
+
+    function finish(win: boolean) {
+      over = true;
+      stopTimer();
+      if (win) {
+        const used = Math.round((Date.now() - startedAt) / 1000);
+        const prev = bestTime();
+        if (!prev || used < prev) {
+          try { localStorage.setItem(bestKey(), String(used)); } catch { /* 忽略 */ }
+          overText.textContent = `清完了，${fmt(used)}，新纪录`;
+        } else {
+          overText.textContent = `清完了，用时 ${fmt(used)}`;
+        }
+      } else {
+        revealAllMines(board);
+        overText.textContent = "踩到雷了";
+      }
+      overlay.hidden = false;
+      render();
+    }
+
+    function open(pos: number) {
+      if (over) return;
+      if (board.cells[pos].revealed) return;
+      startTimer();
+      const res = reveal(board, pos, level().mines);
+      render();
+      if (res.lost) {
+        finish(false);
+        return;
+      }
+      if (isWin(board)) finish(true);
+    }
+
+    function flag(pos: number) {
+      if (over) return;
+      if (board.cells[pos].revealed) return;
+      toggleFlag(board, pos);
+      render();
+    }
+
+    function act(pos: number) {
+      if (flagMode) flag(pos);
+      else open(pos);
+    }
+
+    boardEl.addEventListener("click", (e) => {
+      const cell = (e.target as HTMLElement).closest<HTMLButtonElement>(".ms__cell");
+      if (!cell) return;
+      act(Number(cell.dataset.pos));
+    });
+
+    boardEl.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      const cell = (e.target as HTMLElement).closest<HTMLButtonElement>(".ms__cell");
+      if (!cell) return;
+      flag(Number(cell.dataset.pos));
+    });
+
+    // 长按插旗（手机）
+    boardEl.addEventListener("touchstart", (e) => {
+      const cell = (e.target as HTMLElement).closest<HTMLButtonElement>(".ms__cell");
+      if (!cell) return;
+      longPress = window.setTimeout(() => {
+        flag(Number(cell.dataset.pos));
+        longPress = undefined;
+      }, 450);
+    }, { passive: true });
+
+    const cancelLong = () => {
+      if (longPress) window.clearTimeout(longPress);
+      longPress = undefined;
+    };
+    boardEl.addEventListener("touchend", cancelLong);
+    boardEl.addEventListener("touchmove", cancelLong);
+
+    flagBtn.addEventListener("click", () => {
+      flagMode = !flagMode;
+      render();
+    });
+
+    function reset() {
+      stopTimer();
+      const lv = level();
+      board = createBoard(lv.cols, lv.rows);
+      over = false;
+      timeEl.textContent = "0";
+      overlay.hidden = true;
+      render();
+    }
+
+    newBtn.addEventListener("click", reset);
+    againBtn.addEventListener("click", reset);
+    levelBtn.addEventListener("click", () => {
+      levelIdx = (levelIdx + 1) % LEVEL_KEYS.length;
+      reset();
+    });
+
+    render();
+  </script>
+</BaseLayout>
+
+<style is:global>
+  .ms {
+    padding-block: 3rem 5rem;
+  }
+
+  .ms__header {
+    max-width: 34rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .ms__title {
+    margin: 0 0 0.6rem;
+  }
+
+  .ms__lead {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+  }
+
+  .ms__panel {
+    max-width: 30rem;
+    padding: 1.1rem;
+    border: 1px solid color-mix(in srgb, var(--color-divider) 70%, transparent);
+    border-radius: var(--radius-card-lg);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .ms__hud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+    color: var(--color-text-secondary);
+    font-size: 0.88rem;
+  }
+
+  .ms__hud strong {
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ms__board-wrap {
+    position: relative;
+  }
+
+  .ms__board {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 9), minmax(0, 1fr));
+    gap: 2px;
+    padding: 6px;
+    border-radius: 8px;
+    background: #cdbb98;
+    box-shadow: inset 0 0 0 1px rgb(120 90 55 / 30%);
+  }
+
+  .ms__cell {
+    aspect-ratio: 1;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-english);
+    font-weight: 700;
+    font-size: clamp(0.6rem, 2.4vw, 0.95rem);
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    min-width: 0;
+    touch-action: manipulation;
+  }
+
+  /* 盖着的：微微凸起 */
+  .ms__cell.is-covered {
+    background: linear-gradient(180deg, #fdf7ea 0%, #ecdfc6 100%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 70%), 0 1px 1px rgb(120 90 55 / 25%);
+  }
+
+  .ms__cell.is-covered:hover {
+    background: linear-gradient(180deg, #fffdf6 0%, #f1e6d0 100%);
+  }
+
+  /* 掀开的：平贴，浅色底 */
+  .ms__cell.is-open {
+    background: #f3ece0;
+    box-shadow: inset 0 0 0 1px rgb(150 125 95 / 22%);
+    cursor: default;
+  }
+
+  .ms__cell.is-flag {
+    background: linear-gradient(180deg, #fdf7ea 0%, #ecdfc6 100%);
+    color: #c0392b;
+    font-size: clamp(0.7rem, 2.8vw, 1.05rem);
+  }
+
+  .ms__cell.is-mine {
+    background: #d98a7f;
+    color: #fff;
+  }
+
+  /* 数字配色（经典扫雷那套） */
+  .ms__cell[data-n="1"] { color: #1f5fa8; }
+  .ms__cell[data-n="2"] { color: #2f7d43; }
+  .ms__cell[data-n="3"] { color: #b03a2e; }
+  .ms__cell[data-n="4"] { color: #4b3b8f; }
+  .ms__cell[data-n="5"] { color: #8c2f1f; }
+  .ms__cell[data-n="6"] { color: #1f7a72; }
+  .ms__cell[data-n="7"] { color: #4a4039; }
+  .ms__cell[data-n="8"] { color: #6b6560; }
+
+  .ms__overlay {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    gap: 0.9rem;
+    text-align: center;
+    background: rgb(250 246 238 / 90%);
+    border-radius: 8px;
+  }
+
+  .ms__overlay[hidden] {
+    display: none;
+  }
+
+  .ms__over-text {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+
+  .ms__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .ms__btn {
+    padding: 0.45rem 0.95rem;
+    border: 1px solid var(--color-brand-strong);
+    border-radius: 999px;
+    background-color: var(--color-brand-strong);
+    color: var(--color-surface);
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .ms__btn--ghost {
+    background-color: transparent;
+    color: var(--color-brand-strong);
+  }
+
+  .ms__more {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+  }
+</style>
