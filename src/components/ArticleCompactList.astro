@@ -18,7 +18,7 @@ const coverMap: Record<string, ImageMetadata> = {
 const articles = (await getCollection("blog"))
   .filter((entry) => !entry.data.draft)
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
-  .slice(0, 3);
+  .slice(0, 4);
 ---
 
 <section id="latest-articles" class="articles-compact" data-reveal="content">
@@ -135,7 +135,7 @@ const articles = (await getCollection("blog"))
     line-height: 1.65;
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 3;
     overflow: hidden;
   }
 

@@ -6,10 +6,8 @@ import MusicPlayerCard from "../components/MusicPlayerCard.astro";
 import AiChatWidget from "../components/AiChatWidget.astro";
 import ThoughtsStrip from "../components/ThoughtsStrip.astro";
 import ArticleCompactList from "../components/ArticleCompactList.astro";
-import GalleryPreview from "../components/GalleryPreview.astro";
 import GuestbookPreview from "../components/GuestbookPreview.astro";
 import PlayStrip from "../components/PlayStrip.astro";
-import ThoughtsCard from "../components/ThoughtsCard.astro";
 ---
 
 <BaseLayout>
@@ -25,19 +23,12 @@ import ThoughtsCard from "../components/ThoughtsCard.astro";
     <div class="home-dashboard__main">
       <ThoughtsStrip />
 
-      <div class="home-dashboard__row">
-        <div class="home-dashboard__articles">
-          <ArticleCompactList />
-        </div>
+      <ArticleCompactList />
 
-        <div class="home-dashboard__sidecards">
-          <GalleryPreview />
-          <ThoughtsCard />
-      <GuestbookPreview />
-        </div>
+      <div class="home-dashboard__band">
+        <GuestbookPreview />
+        <PlayStrip />
       </div>
-
-      <PlayStrip />
     </div>
   </div>
 </BaseLayout>
@@ -75,23 +66,20 @@ import ThoughtsCard from "../components/ThoughtsCard.astro";
     min-width: 0;
   }
 
-  .home-dashboard__row {
+  /* 文章占满；下面留言板与「玩一会儿」并排 */
+  .home-dashboard__band {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 1.25rem;
+    gap: 1rem;
+    margin-top: 1.75rem;
   }
 
-  @media (min-width: 1024px) {
-    .home-dashboard__row {
-      grid-template-columns: minmax(0, 1fr) 310px;
-      gap: 1.75rem;
+  @media (min-width: 900px) {
+    .home-dashboard__band {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.25rem;
       align-items: start;
     }
-  }
-
-  .home-dashboard__sidecards {
-    display: grid;
-    gap: 1rem;
   }
 
   /* 聊天在 310px 侧栏里：内边距收紧，消息区矮一些 */
