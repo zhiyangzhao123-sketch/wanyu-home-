@@ -10,7 +10,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
     <header class="sn__header">
       <h1 class="sn__title">贪吃蛇</h1>
       <p class="sn__lead">
-        方向键或 WASD 控制，空格暂停。**撞到边缘会从另一侧出来**，撞到自己才结束。手机上直接滑动屏幕。
+        点「开始」，蛇才会动。方向键或 WASD 控制，空格暂停；撞到边缘会从另一侧出来，撞到自己才结束。手机上直接滑动屏幕。
       </p>
     </header>
 
@@ -23,9 +23,9 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
 
       <div class="sn__stage">
         <canvas class="sn__canvas" data-canvas width="400" height="400" aria-label="游戏区"></canvas>
-        <div class="sn__overlay" data-overlay hidden>
+        <div class="sn__overlay" data-overlay>
           <p class="sn__over-text" data-over-text>结束了</p>
-          <button type="button" class="sn__btn" data-again>再来一局</button>
+          <button type="button" class="sn__btn" data-again>开始</button>
         </div>
       </div>
 
@@ -64,6 +64,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
 
     let game = createGame();
     let paused = false;
+    let started = false;
 
     function bestScore() {
       try { return Number(localStorage.getItem(KEY_BEST) ?? 0); } catch { return 0; }
@@ -168,6 +169,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
     }
 
     function die() {
+      started = false;
       if (game.score > bestScore()) saveBest(game.score);
       overText.textContent = `结束了，${game.score} 分`;
       overlay.hidden = false;
@@ -180,7 +182,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
       if (ticker) window.clearTimeout(ticker);
       const interval = tickInterval(game.score);
       ticker = window.setTimeout(() => {
-        if (game.dead || paused) return;
+        if (!started || game.dead || paused) return;
         step(game);
         updateHud();
         draw();
@@ -192,13 +194,26 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
       }, interval);
     }
 
-    function restart() {
-      game = createGame();
+    function startGame() {
+      started = true;
       paused = false;
       overlay.hidden = true;
+      againBtn.textContent = "再来一局";
       updateHud();
       draw();
       scheduleTick();
+    }
+
+    function restart() {
+      // 回到「等着开始」的状态，而不是立刻开跑
+      game = createGame();
+      started = false;
+      paused = false;
+      overlay.hidden = false;
+      overText.textContent = "准备好了吗";
+      againBtn.textContent = "开始";
+      updateHud();
+      draw();
     }
 
     function setDir(dir: "up" | "down" | "left" | "right") {
@@ -214,6 +229,10 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
       else if (k === "ArrowLeft" || k === "a" || k === "A") setDir("left");
       else if (k === "ArrowRight" || k === "d" || k === "D") setDir("right");
       else if (k === " ") {
+        if (!started && !game.dead) {
+          startGame();
+          return;
+        }
         if (!game.dead) {
           paused = !paused;
           updateHud();
@@ -251,7 +270,10 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
       draw();
       if (!paused) scheduleTick();
     });
-    againBtn.addEventListener("click", restart);
+    againBtn.addEventListener("click", () => {
+      if (started) restart();
+      else startGame();
+    });
 
     restart();
   </script>
