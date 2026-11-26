@@ -79,24 +79,32 @@ function clearLine(board, r1, c1, r2, c2) {
   return false;
 }
 
-/** 两点能否用不超过两个拐弯的空路连起来。 */
-export function canLink(board, a, b) {
-  if (a === b) return false;
+/**
+ * 找一条不超过两个拐弯的空路。
+ * 找到返回折点数组（含两端），找不到返回 null。
+ * 点位用 [行, 列] 表示。
+ */
+export function findPath(board, a, b) {
+  if (a === b) return null;
   const ar = Math.floor(a / board.cols);
   const ac = a % board.cols;
   const br = Math.floor(b / board.cols);
   const bc = b % board.cols;
-  if (board.grid[a] !== board.grid[b] || !board.grid[a]) return false;
+  if (!board.grid[a] || board.grid[a] !== board.grid[b]) return null;
 
   // 直连
-  if (clearLine(board, ar, ac, br, bc)) return true;
+  if (clearLine(board, ar, ac, br, bc)) {
+    return [[ar, ac], [br, bc]];
+  }
 
   // 一个拐弯
   for (const [r, c] of [[ar, bc], [br, ac]]) {
-    if (emptyAt(board, r, c) && clearLine(board, ar, ac, r, c) && clearLine(board, r, c, br, bc)) return true;
+    if (emptyAt(board, r, c) && clearLine(board, ar, ac, r, c) && clearLine(board, r, c, br, bc)) {
+      return [[ar, ac], [r, c], [br, bc]];
+    }
   }
 
-  // 两个拐弯：沿 a 的行/列扫，遇到空位就试着接
+  // 两个拐弯：沿 a 的行列扫过空格，再拐向 b
   for (const [dr, dc] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
     let r = ar + dr;
     let c = ac + dc;
@@ -108,14 +116,18 @@ export function canLink(board, a, b) {
           clearLine(board, r, c, kr, kc) &&
           clearLine(board, kr, kc, br, bc)
         ) {
-          return true;
+          return [[ar, ac], [r, c], [kr, kc], [br, bc]];
         }
       }
       r += dr;
       c += dc;
     }
   }
-  return false;
+  return null;
+}
+
+export function canLink(board, a, b) {
+  return findPath(board, a, b) !== null;
 }
 
 /** 当前盘面有多少对能连。 */

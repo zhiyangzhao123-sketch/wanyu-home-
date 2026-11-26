@@ -21,7 +21,10 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
         <span>最好 <strong data-best>—</strong></span>
       </div>
 
-      <div class="ll__board" data-board></div>
+      <div class="ll__board" data-board>
+        <svg class="ll__lines" data-lines aria-hidden="true"></svg>
+        <div class="ll__grid" data-grid></div>
+      </div>
 
       <div class="ll__actions">
         <button type="button" class="ll__btn" data-hint>提示</button>
@@ -42,7 +45,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
 
   <script>
     import {
-      createBoard, canLink, findPair, reshuffle, countMoves, remainingPairs, MIN_MOVES,
+      createBoard, findPath, findPair, reshuffle, countMoves, remainingPairs, MIN_MOVES,
     } from "../../../lib/linklink.js";
 
     const LOGOS = [
@@ -60,10 +63,12 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
       { id: "perplexity", name: "Perplexity" },
     ];
 
-    const COLS = 8;
-    const ROWS = 6;
+    const COLS = 10;
+    const ROWS = 7;
 
     const boardEl = document.querySelector("[data-board]") as HTMLElement;
+    const gridEl = document.querySelector("[data-grid]") as HTMLElement;
+    const linesEl = document.querySelector("[data-lines]") as unknown as SVGElement;
     const leftEl = document.querySelector("[data-left]") as HTMLElement;
     const timeEl = document.querySelector("[data-time]") as HTMLElement;
     const bestEl = document.querySelector("[data-best]") as HTMLElement;
@@ -80,6 +85,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
     let timer: number | undefined;
     let hinted: number[] = [];
     let done = false;
+    let locked = false;
 
     function logoMeta(id: string) {
       return LOGOS.find((l) => l.id === id) ?? { id, name: id };
@@ -117,9 +123,13 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
       timer = undefined;
     }
 
+    function cellAt(pos: number) {
+      return gridEl.querySelector<HTMLElement>(`[data-pos="${pos}"]`);
+    }
+
     function render() {
-      boardEl.style.setProperty("--cols", String(COLS));
-      boardEl.innerHTML = "";
+      gridEl.style.setProperty("--cols", String(COLS));
+      gridEl.innerHTML = "";
       for (let i = 0; i < COLS * ROWS; i++) {
         const value = board.grid[i];
         const cell = document.createElement("button");
@@ -145,12 +155,43 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
 
         if (selected === i) cell.classList.add("is-selected");
         if (hinted.includes(i)) cell.classList.add("is-hinted");
-        boardEl.appendChild(cell);
+        gridEl.appendChild(cell);
       }
 
       leftEl.textContent = String(remainingPairs(board));
       const b = best();
       bestEl.textContent = b ? fmt(b) : "—";
+    }
+
+    /** 把路径点画成折线，短暂显示后淡出。 */
+    function showPath(points: number[][]) {
+      const boardRect = boardEl.getBoundingClientRect();
+      const coords = points.map(([r, c]) => {
+        const cell = cellAt(r * COLS + c);
+        if (!cell) return null;
+        const rect = cell.getBoundingClientRect();
+        return [
+          rect.left - boardRect.left + rect.width / 2,
+          rect.top - boardRect.top + rect.height / 2,
+        ];
+      }).filter(Boolean) as number[][];
+
+      if (coords.length < 2) return;
+
+      linesEl.setAttribute("viewBox", `0 0 ${boardRect.width} ${boardRect.height}`);
+      linesEl.setAttribute("width", String(boardRect.width));
+      linesEl.setAttribute("height", String(boardRect.height));
+      linesEl.innerHTML =
+        `<polyline points="${coords.map((p) => p.join(",")).join(" ")}" fill="none" stroke="#2f6f4f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5" class="ll__path"/>` +
+        coords
+          .map((p) => `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#2f6f4f" class="ll__node"/>`)
+          .join("");
+
+      linesEl.classList.add("is-on");
+      window.setTimeout(() => {
+        linesEl.classList.remove("is-on");
+        linesEl.innerHTML = "";
+      }, 380);
     }
 
     function finishIfDone() {
@@ -170,7 +211,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
     }
 
     function clicked(pos: number) {
-      if (done || !board.grid[pos]) return;
+      if (done || locked || !board.grid[pos]) return;
       startTimer();
       hinted = [];
 
@@ -192,13 +233,13 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
         return;
       }
 
-      if (!canLink(board, first, pos)) {
+      const path = findPath(board, first, pos);
+      if (!path) {
         note("这两个连不上，中间被挡住了");
         selected = pos;
         render();
-        // 闪一下，别让玩家以为没反应
         for (const p of [first, pos]) {
-          const el = boardEl.querySelector<HTMLElement>(`[data-pos="${p}"]`);
+          const el = cellAt(p);
           if (el) {
             el.classList.add("is-invalid");
             window.setTimeout(() => el.classList.remove("is-invalid"), 450);
@@ -207,21 +248,28 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
         return;
       }
 
-      board.grid[first] = null;
-      board.grid[pos] = null;
-      selected = null;
-      render();
+      // 有路：画线 → 两块弹一下 → 消除
+      locked = true;
+      showPath(path);
+      for (const p of [first, pos]) cellAt(p)?.classList.add("is-matching");
 
-      if (finishIfDone()) return;
-
-      if (countMoves(board) === 0) {
-        reshuffle(board);
+      window.setTimeout(() => {
+        board.grid[first] = null;
+        board.grid[pos] = null;
+        selected = null;
+        locked = false;
         render();
-        note("没得连了，帮你洗了一次");
-      }
+
+        if (finishIfDone()) return;
+        if (countMoves(board) === 0) {
+          reshuffle(board);
+          render();
+          note("没得连了，帮你洗了一次");
+        }
+      }, 300);
     }
 
-    boardEl.addEventListener("click", (e) => {
+    gridEl.addEventListener("click", (e) => {
       const cell = (e.target as HTMLElement).closest<HTMLButtonElement>(".ll__cell");
       if (!cell || cell.disabled) return;
       clicked(Number(cell.dataset.pos));
@@ -238,6 +286,8 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
       }
       hinted = pair;
       render();
+      const path = findPath(board, pair[0], pair[1]);
+      if (path) showPath(path);
       note("这两块可以连");
       window.setTimeout(() => { hinted = []; render(); }, 1600);
     });
@@ -257,6 +307,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
       selected = null;
       hinted = [];
       done = false;
+      locked = false;
       timeEl.textContent = "0:00";
       render();
       note("新的一局");
@@ -287,7 +338,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
   }
 
   .ll__panel {
-    max-width: 34rem;
+    max-width: 40rem;
     padding: 1.15rem;
     border: 1px solid color-mix(in srgb, var(--color-divider) 70%, transparent);
     border-radius: var(--radius-card-lg);
@@ -310,13 +361,52 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
   }
 
   .ll__board {
-    display: grid;
-    grid-template-columns: repeat(var(--cols, 8), minmax(0, 1fr));
-    gap: 4px;
-    padding: 8px;
+    position: relative;
     border-radius: 10px;
     background: linear-gradient(160deg, #e8d5b3 0%, #d9c296 100%);
     box-shadow: inset 0 0 0 1px rgb(120 90 55 / 30%);
+    padding: 8px;
+  }
+
+  .ll__grid {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 10), minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  /* 连线层：盖在棋盘上，不接收点击 */
+  .ll__lines {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 160ms var(--ease-out-soft);
+    z-index: 3;
+  }
+
+  .ll__lines.is-on {
+    opacity: 1;
+  }
+
+  .ll__path {
+    filter: drop-shadow(0 1px 2px rgb(20 60 40 / 35%));
+    animation: ll-dash 360ms linear;
+  }
+
+  @keyframes ll-dash {
+    from { stroke-dashoffset: 22; opacity: 0.2; }
+    to { stroke-dashoffset: 0; opacity: 1; }
+  }
+
+  .ll__node {
+    animation: ll-pop 360ms var(--ease-out-soft);
+  }
+
+  @keyframes ll-pop {
+    from { transform: scale(0.2); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
   }
 
   .ll__cell {
@@ -361,9 +451,26 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
     box-shadow: 0 0 0 2px #d6a53c;
   }
 
+  .ll__cell.is-matching {
+    animation: ll-match 300ms var(--ease-out-soft) forwards;
+  }
+
+  @keyframes ll-match {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgb(47 111 79 / 0%); }
+    40% { transform: scale(1.12); box-shadow: 0 0 0 4px rgb(47 111 79 / 45%); }
+    100% { transform: scale(0.4); opacity: 0; }
+  }
+
   .ll__cell.is-invalid {
     border-color: #b4553f;
     background: linear-gradient(180deg, #fbe7e1 0%, #f6d5cc 100%);
+    animation: ll-shake 300ms;
+  }
+
+  @keyframes ll-shake {
+    0%, 100% { transform: translateX(0); }
+    30% { transform: translateX(-2px); }
+    70% { transform: translateX(2px); }
   }
 
   .ll__actions {
@@ -397,7 +504,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
   }
 
   .ll__credit {
-    max-width: 34rem;
+    max-width: 40rem;
     margin-top: 1.25rem;
     color: var(--color-text-secondary);
     font-size: 0.78rem;
@@ -407,5 +514,14 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
   .ll__more {
     margin-top: 1.5rem;
     font-size: 0.9rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ll__path,
+    .ll__node,
+    .ll__cell.is-matching,
+    .ll__cell.is-invalid {
+      animation: none;
+    }
   }
 </style>
